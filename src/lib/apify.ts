@@ -423,7 +423,7 @@ export class ApifyScraper {
       {
         name: 'Meetup.com Tech Events',
         url: 'https://www.meetup.com/find/?source=EVENTS&location=us--New-York--NY&distance=twentyFiveMiles&sort=recommended&eventType=inPerson&categoryId=546',
-        actor: 'apify/website-content-crawler',
+        actor: 'filip_cicvarek/meetup-scraper',
         maxRetries: 3
       },
       {
