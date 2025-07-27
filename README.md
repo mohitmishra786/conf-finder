@@ -32,6 +32,26 @@ A comprehensive Next.js application that dynamically lists upcoming tech confere
 
 - Node.js 18+ 
 - npm or yarn
+- Supabase account and project
+- Apify account and API token
+- FireCrawl API key (optional)
+
+### Environment Variables
+
+Create a `.env.local` file in the root directory with the following variables:
+
+```bash
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+
+# Apify Configuration
+APIFY_TOKEN=your_apify_api_token
+
+# FireCrawl Configuration (optional)
+FIRECRAWL_KEY=your_firecrawl_api_key
+```
 
 ### Installation
 
@@ -46,12 +66,14 @@ cd conf-finder
 npm install
 ```
 
-3. Run the development server:
+3. Set up your environment variables in `.env.local`
+
+4. Run the development server:
 ```bash
 npm run dev
 ```
 
-4. Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+5. Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 ## Data Sources
 
@@ -83,13 +105,21 @@ The application fetches conference data from multiple sources:
 src/
 ├── app/                    # Next.js App Router pages
 │   ├── about/             # About page
+│   ├── admin/             # Admin dashboard
+│   ├── api/               # API routes
+│   │   ├── conferences/   # Get all conferences
+│   │   ├── fetch-github/  # Fetch from GitHub
+│   │   ├── scrape/        # Run scraping
+│   │   └── test-firecrawl/ # Test FireCrawl
 │   ├── domains/[slug]/    # Individual domain pages
+│   ├── search/            # Search page
 │   ├── globals.css        # Global styles
 │   ├── layout.tsx         # Root layout
 │   └── page.tsx           # Homepage
 ├── components/            # React components
 │   ├── ConferenceCard.tsx
 │   ├── DomainSection.tsx
+│   ├── ErrorBoundary.tsx
 │   ├── Footer.tsx
 │   ├── Header.tsx
 │   └── LoadingSpinner.tsx
@@ -98,15 +128,45 @@ src/
 ├── data/                  # Static data files
 │   └── custom-domains.json
 ├── lib/                   # Utility functions
-│   ├── conferences.ts
-│   └── search.ts
+│   ├── apify.ts          # Apify scraping
+│   ├── conferences.ts    # GitHub data fetching
+│   ├── database.ts       # Supabase operations
+│   ├── firecrawl.ts      # FireCrawl scraping
+│   ├── search.ts         # Search functionality
+│   └── supabase.ts       # Supabase client
 └── types/                 # TypeScript type definitions
     └── conference.ts
 ```
 
-## Key Features
+## API Endpoints
 
-### Data Fetching & Scraping
+The application provides several API endpoints for data management and scraping operations:
+
+### `/api/conferences` (GET)
+- **Purpose**: Retrieve all conferences organized by domains
+- **Response**: Array of domains with their conferences
+- **Authentication**: None required
+
+### `/api/fetch-github` (GET/POST)
+- **GET**: Get available domains and current year
+- **POST**: Fetch and store conferences from GitHub confs.tech repository
+- **Response**: Scraping statistics and results
+- **Authentication**: None required
+
+### `/api/scrape` (GET/POST)
+- **GET**: Get scraping status and statistics
+- **POST**: Run comprehensive scraping (GitHub + Apify + FireCrawl)
+- **Response**: Detailed scraping results from all sources
+- **Authentication**: None required
+
+### `/api/test-firecrawl` (GET)
+- **Purpose**: Test FireCrawl API connectivity
+- **Response**: API test results
+- **Authentication**: Requires FIRECRAWL_KEY environment variable
+
+For detailed API documentation, see [API.md](./API.md).
+
+## Key Features
 - **GitHub Integration**: Fetches data from confs.tech repository
 - **Apify Web Scraping**: Automatically discovers new conferences from multiple sources
 - **Domain Classification**: Uses keyword matching to categorize conferences
