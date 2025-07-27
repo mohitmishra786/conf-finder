@@ -9,9 +9,13 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@mendable/firecrawl-js": "^1.29.2",
+    "@supabase/supabase-js": "^2.52.1",
+    "apify": "^3.4.3",
     "date-fns": "^4.1.0",
     "fuse.js": "^7.1.0",
     "next": "15.4.4",
+    "node-cron": "^4.2.1",
     "react": "19.1.0",
     "react-dom": "19.1.0"
   },
@@ -23,6 +27,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.4.4",
+    "null-loader": "^4.0.1",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

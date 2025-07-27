@@ -14,19 +14,26 @@ export default function ConferenceCard({ conference, searchTerm }: ConferenceCar
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 border border-gray-200 dark:border-gray-700">
       <div className="p-6">
         {/* Conference Name */}
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-          <a
-            href={conference.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-            dangerouslySetInnerHTML={{
-              __html: searchTerm 
-                ? searchTerm.replace(new RegExp(`(${searchTerm})`, 'gi'), '<mark class="bg-yellow-200 dark:bg-yellow-800">$1</mark>')
-                : conference.name
-            }}
-          />
-        </h3>
+        <div className="flex items-start justify-between mb-2">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex-1">
+            <a
+              href={conference.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+              dangerouslySetInnerHTML={{
+                __html: searchTerm 
+                  ? searchTerm.replace(new RegExp(`(${searchTerm})`, 'gi'), '<mark class="bg-yellow-200 dark:bg-yellow-800">$1</mark>')
+                  : conference.name
+              }}
+            />
+          </h3>
+          {conference.isNew && (
+            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 ml-2">
+              New
+            </span>
+          )}
+        </div>
 
         {/* Date and Location */}
         <div className="space-y-2 mb-4">

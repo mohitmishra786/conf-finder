@@ -1,14 +1,49 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import { GITHUB_REPO_URL } from '@/constants/domains';
+import { getLastUpdatedTimestamp } from '@/lib/database';
 
 export default function Footer() {
-  const lastUpdated = new Date().toLocaleString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZoneName: 'short'
-  });
+  const [lastUpdated, setLastUpdated] = useState<string>('');
+  
+  useEffect(() => {
+    const fetchLastUpdated = async () => {
+      try {
+        const lastUpdatedTimestamp = await getLastUpdatedTimestamp();
+        const formattedDate = lastUpdatedTimestamp 
+          ? new Date(lastUpdatedTimestamp).toLocaleString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              timeZoneName: 'short'
+            })
+          : new Date().toLocaleString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              timeZoneName: 'short'
+            });
+        setLastUpdated(formattedDate);
+      } catch (error) {
+        // Fallback to current time if database is not set up
+        setLastUpdated(new Date().toLocaleString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          timeZoneName: 'short'
+        }));
+      }
+    };
+    
+    fetchLastUpdated();
+  }, []);
 
   return (
     <footer className="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 mt-16">

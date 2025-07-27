@@ -4,11 +4,12 @@ import Link from 'next/link';
 import { useState } from 'react';
 
 interface HeaderProps {
-  onSearch: (searchTerm: string) => void;
-  searchTerm: string;
+  onSearch?: (searchTerm: string) => void;
+  searchTerm?: string;
+  showSearchRedirect?: boolean;
 }
 
-export default function Header({ onSearch, searchTerm }: HeaderProps) {
+export default function Header({ onSearch, searchTerm = '', showSearchRedirect = false }: HeaderProps) {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   return (
@@ -44,9 +45,14 @@ export default function Header({ onSearch, searchTerm }: HeaderProps) {
                 }`}
                 placeholder="Search conferences, domains, or locations..."
                 value={searchTerm}
-                onChange={(e) => onSearch(e.target.value)}
+                onChange={(e) => onSearch?.(e.target.value)}
                 onFocus={() => setIsSearchFocused(true)}
                 onBlur={() => setIsSearchFocused(false)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && showSearchRedirect && searchTerm.trim()) {
+                    window.location.href = `/search?q=${encodeURIComponent(searchTerm.trim())}`;
+                  }
+                }}
               />
             </div>
           </div>
