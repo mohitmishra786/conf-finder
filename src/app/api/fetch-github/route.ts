@@ -18,7 +18,7 @@ export async function POST() {
     // Create initial scrape log
     const initialLog = await createScrapeLog({
       scrapeType: 'github',
-      status: 'success',
+      status: 'partial',
       conferencesFound: 0,
       conferencesAdded: 0,
       conferencesUpdated: 0,

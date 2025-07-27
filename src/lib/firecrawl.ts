@@ -322,7 +322,15 @@ export class FireCrawlScraper {
                                 errorMessage.includes('too many requests');
         
         if (attempt < maxRetries) {
-          const delay = Math.pow(20, attempt) * 1000; // Exponential backoff: 2s, 4s, 8s
+          // Use a fixed delay of 18 seconds on rate limit errors, otherwise exponential backoff
+          let delay: number;
+          if (isRateLimitError) {
+            delay = 20000; // 18 seconds, as FireCrawl rate limit resets around this time
+            console.log(`Rate limit hit. Waiting ${delay}ms (18s) before retry...`);
+          } else {
+            delay = Math.pow(2, attempt) * 1000; // Exponential backoff: 2s, 4s, 8s
+            console.log(`Waiting ${delay}ms before retry...`);
+          }
           console.log(`Waiting ${delay}ms before retry...`);
           await new Promise(resolve => setTimeout(resolve, delay));
         } else {

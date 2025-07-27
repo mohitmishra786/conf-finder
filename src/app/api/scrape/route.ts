@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     // Create initial scrape log
     const initialLog = await createScrapeLog({
       scrapeType: 'apify',
-      status: 'success',
+      status: 'partial',
       conferencesFound: 0,
       conferencesAdded: 0,
       conferencesUpdated: 0,
@@ -108,8 +108,7 @@ export async function POST(request: NextRequest) {
     const conferencesByDomain = new Map<string, Conference[]>();
     
     for (const conference of apifyConferences) {
-      // Use the ApifyScraper's classification method to determine domain
-      const apifyScraper = new ApifyScraper();
+      // Use the existing ApifyScraper's classification method to determine domain
       const domainSlug = apifyScraper.classifyDomain(conference.name, conference.description);
       
       if (!conferencesByDomain.has(domainSlug)) {
