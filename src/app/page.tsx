@@ -1,82 +1,56 @@
-'use client';
-
-import { useState, useEffect } from 'react';
 import { Domain } from '@/types/conference';
-import { getAllConferences } from '@/lib/conferences';
-import { searchConferences } from '@/lib/search';
+import { getAllDomainsWithConferences } from '@/lib/database';
 import Header from '@/components/Header';
 import DomainSection from '@/components/DomainSection';
 import Footer from '@/components/Footer';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
-export default function Home() {
-  const [domains, setDomains] = useState<Domain[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [searchResults, setSearchResults] = useState<Domain[]>([]);
+export default async function Home() {
+  let domains: Domain[] = [];
+  let error: string | null = null;
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        const data = await getAllConferences();
-        setDomains(data);
-        setError(null);
-      } catch (err) {
-        setError('Failed to load conferences. Please try refreshing the page.');
-        console.error('Error fetching conferences:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  useEffect(() => {
-    if (searchTerm.trim()) {
-      const results = searchConferences(domains, searchTerm);
-      setSearchResults(results.map(result => ({
-        ...result.domain,
-        conferences: result.conferences
-      })));
-    } else {
-      setSearchResults(domains);
+  try {
+    domains = await getAllDomainsWithConferences();
+    
+    if (domains.length === 0) {
+      error = 'No conference data found. Please set up the database or run the initial data fetch.';
     }
-  }, [searchTerm, domains]);
-
-  const handleSearch = (term: string) => {
-    setSearchTerm(term);
-  };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <Header onSearch={handleSearch} searchTerm={searchTerm} />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <LoadingSpinner />
-        </main>
-        <Footer />
-      </div>
-    );
+  } catch (err) {
+    console.error('Error fetching conferences:', err);
+    error = 'Database not set up yet. Please run the database setup SQL and trigger the initial data fetch.';
   }
 
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <Header onSearch={handleSearch} searchTerm={searchTerm} />
+        <Header />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center py-12">
             <div className="text-red-600 dark:text-red-400 text-lg mb-4">
               {error}
             </div>
-            <button
-              onClick={() => window.location.reload()}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-            >
-              Try Again
-            </button>
+            <div className="text-gray-600 dark:text-gray-400 mb-6 max-w-2xl mx-auto">
+              <p className="mb-4">To get started:</p>
+              <ol className="text-left list-decimal list-inside space-y-2">
+                <li>Run the database setup SQL in your Supabase SQL Editor</li>
+                <li>Visit the <a href="/admin" className="text-blue-600 dark:text-blue-400 hover:underline">Admin Panel</a> to trigger the initial data fetch</li>
+                <li>Or click "Try Again" to reload the page</li>
+              </ol>
+            </div>
+            <div className="space-x-4">
+              <button
+                onClick={() => window.location.reload()}
+                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+              >
+                Try Again
+              </button>
+              <a
+                href="/admin"
+                className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors inline-block"
+              >
+                Go to Admin Panel
+              </a>
+            </div>
           </div>
         </main>
         <Footer />
@@ -86,41 +60,47 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Header onSearch={handleSearch} searchTerm={searchTerm} />
+      <Header showSearchRedirect={true} />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Search Results Summary */}
-        {searchTerm && (
-          <div className="mb-8 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-            <p className="text-blue-800 dark:text-blue-200">
-              Found {searchResults.reduce((total, domain) => total + domain.conferences.length, 0)} conferences 
-              across {searchResults.length} domains for &quot;{searchTerm}&quot;
-            </p>
+        {/* Domain Filter Buttons */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+            Browse by Domain
+          </h2>
+          <div className="flex flex-wrap gap-3">
+            <a
+              href="/search"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
+            >
+              All Conferences
+            </a>
+            {domains.map((domain) => (
+              <a
+                key={domain.slug}
+                href={`/search?domain=${domain.slug}`}
+                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
+              >
+                {domain.name} ({domain.conferences.length})
+              </a>
+            ))}
           </div>
-        )}
+        </div>
 
         {/* Domains */}
-        {searchResults.length > 0 ? (
-          searchResults.map((domain) => (
+        {domains.length > 0 ? (
+          domains.map((domain) => (
             <DomainSection
               key={domain.slug}
               domain={domain}
-              searchTerm={searchTerm}
+              searchTerm=""
             />
           ))
         ) : (
           <div className="text-center py-12">
             <div className="text-gray-600 dark:text-gray-400 text-lg mb-4">
-              {searchTerm ? 'No conferences found matching your search.' : 'No upcoming conferences found.'}
+              No upcoming conferences found.
             </div>
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm('')}
-                className="text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                Clear search
-              </button>
-            )}
           </div>
         )}
       </main>

@@ -1,24 +1,14 @@
 import { NextResponse } from 'next/server';
-import { getAllConferences } from '@/lib/conferences';
+import { getAllDomainsWithConferences } from '@/lib/database';
 
 export async function GET() {
   try {
-    const domains = await getAllConferences();
-    
-    return NextResponse.json({
-      success: true,
-      data: domains,
-      timestamp: new Date().toISOString()
-    });
+    const domains = await getAllDomainsWithConferences();
+    return NextResponse.json(domains);
   } catch (error) {
-    console.error('API Error:', error);
-    
+    console.error('Error fetching conferences:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to fetch conferences',
-        timestamp: new Date().toISOString()
-      },
+      { error: 'Failed to fetch conferences' },
       { status: 500 }
     );
   }

@@ -31,18 +31,6 @@ export const DOMAIN_MAPPINGS: Record<string, { name: string; description: string
     name: "Web Development",
     description: "Frontend, backend, and full-stack web technologies."
   },
-  mobile: {
-    name: "Mobile Development",
-    description: "iOS, Android, and cross-platform mobile development."
-  },
-  blockchain: {
-    name: "Blockchain",
-    description: "Distributed ledger technology and cryptocurrency applications."
-  },
-  iot: {
-    name: "Internet of Things",
-    description: "Connected devices, sensors, and IoT ecosystems."
-  },
   gaming: {
     name: "Game Development",
     description: "Game design, development, and interactive entertainment."
@@ -63,25 +51,9 @@ export const DOMAIN_MAPPINGS: Record<string, { name: string; description: string
     name: "Software Architecture",
     description: "System design, patterns, and architectural principles."
   },
-  agile: {
-    name: "Agile & Scrum",
-    description: "Agile methodologies, project management, and team collaboration."
-  },
   ux: {
     name: "User Experience",
     description: "UX design, research, and user-centered design principles."
-  },
-  product: {
-    name: "Product Management",
-    description: "Product strategy, development, and management practices."
-  },
-  leadership: {
-    name: "Tech Leadership",
-    description: "Leadership skills, team management, and organizational development."
-  },
-  startup: {
-    name: "Startups & Entrepreneurship",
-    description: "Startup ecosystem, funding, and entrepreneurial skills."
   }
 };
 

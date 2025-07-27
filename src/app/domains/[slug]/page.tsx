@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getConferencesForDomain, getCurrentYear } from '@/lib/conferences';
+import { getConferencesByDomain } from '@/lib/database';
 import { DOMAIN_MAPPINGS } from '@/constants/domains';
 import ConferenceCard from '@/components/ConferenceCard';
 import Link from 'next/link';
@@ -19,8 +19,7 @@ export default async function DomainPage({ params, searchParams }: DomainPagePro
   const page = parseInt(pageParam || '1');
   const conferencesPerPage = 12;
 
-  const year = await getCurrentYear();
-  const conferences = await getConferencesForDomain(slug, year);
+  const conferences = await getConferencesByDomain(slug);
 
   if (conferences.length === 0) {
     notFound();
