@@ -1,0 +1,17 @@
+{
+  "customDomains": [
+    {
+      "slug": "custom-domain-1",
+      "name": "Custom Domain 1",
+      "description": "Description for custom domain 1"
+    }
+  ],
+  "domainAliases": {
+    "ml": "ai",
+    "machine-learning": "ai",
+    "data-science": "data",
+    "webdev": "web",
+    "frontend-dev": "frontend",
+    "backend-dev": "backend"
+  }
+} 
