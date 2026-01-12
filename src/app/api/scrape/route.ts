@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { ApifyScraper } from '@/lib/apify';
 import { FireCrawlScraper } from '@/lib/firecrawl';
-import { 
+import {
   getAllDomainsWithConferences,
   upsertConferences,
   createScrapeLog,
@@ -9,7 +9,7 @@ import {
 } from '@/lib/database';
 import { Conference } from '@/types/conference';
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   const startTime = new Date();
   let scrapeLogId: number | undefined;
 
@@ -34,13 +34,13 @@ export async function POST(request: NextRequest) {
     const maxRetries = 3;
     let totalGitHubAdded = 0;
     let totalGitHubUpdated = 0;
-    let domains: any[] = [];
+    let domains: { slug: string; conferences: Conference[] }[] = [];
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         console.log(`GitHub scraping attempt ${attempt}/${maxRetries}...`);
         domains = await getAllDomainsWithConferences();
-        
+
         for (const domain of domains) {
           try {
             if (domain.conferences.length > 0) {
@@ -52,10 +52,10 @@ export async function POST(request: NextRequest) {
             console.error(`Error storing GitHub conferences for domain ${domain.slug}:`, error);
           }
         }
-        
+
         console.log(`GitHub scraping completed successfully on attempt ${attempt}`);
         break; // Success, exit retry loop
-        
+
       } catch (error) {
         console.error(`GitHub scraping attempt ${attempt} failed:`, error);
         if (attempt < maxRetries) {
@@ -74,10 +74,10 @@ export async function POST(request: NextRequest) {
     console.log('Starting FireCrawl scraping...');
     const firecrawlScraper = new FireCrawlScraper();
     const firecrawlResults = await firecrawlScraper.scrapeAllDomains();
-    
+
     let totalFirecrawlAdded = 0;
     let totalFirecrawlUpdated = 0;
-    
+
     for (const [domainSlug, conferences] of firecrawlResults) {
       try {
         if (conferences.length > 0) {
@@ -106,11 +106,11 @@ export async function POST(request: NextRequest) {
 
     // Group conferences by domain using the ApifyScraper's classification
     const conferencesByDomain = new Map<string, Conference[]>();
-    
+
     for (const conference of apifyConferences) {
       // Use the existing ApifyScraper's classification method to determine domain
       const domainSlug = apifyScraper.classifyDomain(conference.name, conference.description);
-      
+
       if (!conferencesByDomain.has(domainSlug)) {
         conferencesByDomain.set(domainSlug, []);
       }
@@ -173,7 +173,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error during scraping:', error);
-    
+
     if (scrapeLogId) {
       await updateScrapeLog(scrapeLogId, {
         status: 'error',
@@ -197,14 +197,14 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   try {
     const { getAllDomainsWithConferences, getLatestScrapeLogs } = await import('@/lib/database');
-    
+
     const [domains, scrapeLogs] = await Promise.all([
       getAllDomainsWithConferences(),
       getLatestScrapeLogs(5)
     ]);
 
     const totalConferences = domains.reduce((total, domain) => total + domain.conferences.length, 0);
-    const newConferences = domains.reduce((total, domain) => 
+    const newConferences = domains.reduce((total, domain) =>
       total + domain.conferences.filter(c => c.isNew).length, 0
     );
 
@@ -220,7 +220,7 @@ export async function GET() {
 
   } catch (error) {
     console.error('Error fetching scraping status:', error);
-    
+
     return NextResponse.json(
       {
         success: false,

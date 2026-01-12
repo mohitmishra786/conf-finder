@@ -1,23 +1,46 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import { Domain } from '@/types/conference';
 import { getAllDomainsWithConferences } from '@/lib/database';
 import Header from '@/components/Header';
 import DomainSection from '@/components/DomainSection';
 import Footer from '@/components/Footer';
-import LoadingSpinner from '@/components/LoadingSpinner';
 
-export default async function Home() {
-  let domains: Domain[] = [];
-  let error: string | null = null;
 
-  try {
-    domains = await getAllDomainsWithConferences();
-    
-    if (domains.length === 0) {
-      error = 'No conference data found. Please set up the database or run the initial data fetch.';
-    }
-  } catch (err) {
-    console.error('Error fetching conferences:', err);
-    error = 'Database not set up yet. Please run the database setup SQL and trigger the initial data fetch.';
+export default function Home() {
+  const [domains, setDomains] = useState<Domain[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const data = await getAllDomainsWithConferences();
+        setDomains(data);
+        if (data.length === 0) {
+          setError('No conference data found. Please set up the database or run the initial data fetch.');
+        }
+      } catch (err) {
+        console.error('Error fetching conferences:', err);
+        setError('Database not set up yet. Please run the database setup SQL and trigger the initial data fetch.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <Header />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex items-center justify-center min-h-[50vh]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </main>
+        <Footer />
+      </div>
+    );
   }
 
   if (error) {
@@ -34,7 +57,7 @@ export default async function Home() {
               <ol className="text-left list-decimal list-inside space-y-2">
                 <li>Run the database setup SQL in your Supabase SQL Editor</li>
                 <li>Visit the <a href="/admin" className="text-blue-600 dark:text-blue-400 hover:underline">Admin Panel</a> to trigger the initial data fetch</li>
-                <li>Or click "Try Again" to reload the page</li>
+                <li>Or click &quot;Try Again&quot; to reload the page</li>
               </ol>
             </div>
             <div className="space-x-4">
@@ -61,7 +84,7 @@ export default async function Home() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Header showSearchRedirect={true} />
-      
+
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Domain Filter Buttons */}
         <div className="mb-8">
@@ -104,7 +127,7 @@ export default async function Home() {
           </div>
         )}
       </main>
-      
+
       <Footer />
     </div>
   );

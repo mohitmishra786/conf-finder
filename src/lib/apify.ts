@@ -5,7 +5,7 @@ import { parseISO, isAfter, startOfDay, parse, isValid } from 'date-fns';
 // Domain classification keywords with priority order
 const DOMAIN_KEYWORDS: Record<string, string[]> = {
   ai: [
-    'artificial intelligence', 'ai', 'machine learning', 'ml', 'deep learning', 'neural networks', 
+    'artificial intelligence', 'ai', 'machine learning', 'ml', 'deep learning', 'neural networks',
     'chatgpt', 'gpt', 'llm', 'large language models', 'natural language processing', 'nlp',
     'computer vision', 'robotics', 'autonomous systems', 'intelligent systems', 'cognitive computing',
     'icait', 'icmlc', 'icml', 'iccv', 'nips', 'neurips', 'aaai', 'ijcai', 'iclr', 'icann', 'icprml'
@@ -76,7 +76,7 @@ export class ApifyScraper {
   public classifyDomain(name: string, description?: string): string {
     const text = `${name.toLowerCase()} ${description?.toLowerCase() || ''}`;
     const scores: Record<string, number> = {};
-    
+
     // Score each domain based on keyword matches
     for (const [domain, keywords] of Object.entries(DOMAIN_KEYWORDS)) {
       let score = 0;
@@ -85,13 +85,13 @@ export class ApifyScraper {
           // Give higher weight to matches in the name vs description
           const nameMatch = name.toLowerCase().includes(keyword);
           const descMatch = description?.toLowerCase().includes(keyword);
-          
+
           if (nameMatch) {
             score += 10; // High weight for name matches
           } else if (descMatch) {
             score += 3;  // Lower weight for description matches
           }
-          
+
           // Bonus for exact acronym matches (like ICMLC, ICAIT)
           if (keyword.length <= 5 && name.toLowerCase().includes(keyword.toLowerCase())) {
             score += 15; // Very high weight for acronym matches
@@ -102,14 +102,14 @@ export class ApifyScraper {
         scores[domain] = score;
       }
     }
-    
+
     // Return the domain with the highest score
     if (Object.keys(scores).length > 0) {
       const bestDomain = Object.entries(scores).reduce((a, b) => scores[a[0]] > scores[b[0]] ? a : b)[0];
       console.log(`Classified "${name}" as ${bestDomain} (score: ${scores[bestDomain]})`);
       return bestDomain;
     }
-    
+
     // Default to 'web' if no specific domain is found
     console.log(`No specific domain found for "${name}", defaulting to web`);
     return 'web';
@@ -131,7 +131,7 @@ export class ApifyScraper {
       // Try date-fns parse with various formats
       const formats = [
         'MMM dd yyyy',
-        'MMM d yyyy', 
+        'MMM d yyyy',
         'MMMM dd yyyy',
         'MMMM d yyyy',
         'yyyy-MM-dd',
@@ -168,7 +168,7 @@ export class ApifyScraper {
 
     for (const line of lines) {
       const trimmedLine = line.trim();
-      
+
       // Skip empty lines
       if (!trimmedLine) continue;
 
@@ -199,21 +199,21 @@ export class ApifyScraper {
     try {
       // Remove bullet point marker
       const cleanLine = line.replace(/^[\*\-]\s*/, '').trim();
-      
+
       // Multiple regex patterns to handle different formats
       const patterns = [
         // Pattern 1: "Aug 07 [Conference Name](url) - City, Country"
         /\*?\s*(\w{3}\s+\d{1,2})\s*\[(.*?)\]\((.*?)\s*(?:".*?")?\)\s*-\s*(.*?),?\s*(.*)/i,
-        
+
         // Pattern 2: "Aug 07 Conference Name - City, Country" (with URL in <a> tag)
         /\*?\s*(\w{3}\s+\d{1,2})\s*<a\s+href="(.*?)">(.*?)<\/a>\s*-\s*(.*?),?\s*(.*)/i,
-        
+
         // Pattern 3: "Aug 07 Conference Name - City, Country" (plain text)
         /\*?\s*(\w{3}\s+\d{1,2})\s+(.*?)\s*-\s*(.*?),?\s*(.*)/i,
-        
+
         // Pattern 4: "Conference Name - Aug 07 - City, Country"
         /\*?\s*(.*?)\s*-\s*(\w{3}\s+\d{1,2})\s*-\s*(.*?),?\s*(.*)/i,
-        
+
         // Pattern 5: "Conference Name (Aug 07) - City, Country"
         /\*?\s*(.*?)\s*\((\w{3}\s+\d{1,2})\)\s*-\s*(.*?),?\s*(.*)/i
       ];
@@ -256,7 +256,7 @@ export class ApifyScraper {
       // Parse date
       const fullDateStr = `${dateStr} ${currentYear}`;
       const startDate = this.extractDate(fullDateStr);
-      
+
       if (!startDate) {
         console.log(`Invalid date: ${fullDateStr}`);
         return null;
@@ -272,13 +272,13 @@ export class ApifyScraper {
 
       // Determine if it's online
       const locationText = `${city} ${country}`.toLowerCase();
-      const online = locationText.includes('virtual') || 
-                    locationText.includes('online') || 
-                    name.toLowerCase().includes('virtual') ||
-                    name.toLowerCase().includes('online');
+      const online = locationText.includes('virtual') ||
+        locationText.includes('online') ||
+        name.toLowerCase().includes('virtual') ||
+        name.toLowerCase().includes('online');
 
       // Classify domain
-      const domainSlug = this.classifyDomain(name);
+      this.classifyDomain(name);
 
       const conference: Conference = {
         name: name.trim(),
@@ -316,7 +316,7 @@ export class ApifyScraper {
     for (const item of items) {
       try {
         console.log('Processing item:', JSON.stringify(item, null, 2));
-        
+
         // Check if item has markdown content
         if (item.markdown && typeof item.markdown === 'string') {
           console.log('Found markdown content, parsing...');
@@ -329,7 +329,7 @@ export class ApifyScraper {
         const name = (item.name as string) || (item.title as string) || (item.eventName as string) || (item.event_name as string);
         const url = (item.url as string) || (item.link as string) || (item.eventUrl as string) || (item.event_url as string);
         const description = (item.description as string) || (item.summary as string) || (item.details as string);
-        
+
         if (!name || !url) {
           console.log('Skipping item due to missing name or URL');
           continue;
@@ -338,7 +338,7 @@ export class ApifyScraper {
         // Extract dates
         const startDate = this.extractDate((item.startDate as string) || (item.start_date as string) || (item.start as string) || (item.date as string));
         const endDate = this.extractDate((item.endDate as string) || (item.end_date as string) || (item.end as string) || (startDate || ''));
-        
+
         if (!startDate) {
           console.log('Skipping item due to missing start date');
           continue;
@@ -358,7 +358,7 @@ export class ApifyScraper {
         const online = (item.online as boolean) || location.toLowerCase().includes('online') || name.toLowerCase().includes('virtual');
 
         // Classify domain
-        const domainSlug = this.classifyDomain(name, description);
+        this.classifyDomain(name, description);
 
         // Extract CFP information
         const cfpUntil = item.cfpUntil ? this.extractDate(item.cfpUntil as string) : undefined;
@@ -411,7 +411,7 @@ export class ApifyScraper {
   // Scrape conferences from multiple sources with exponential backoff retry logic
   async scrapeAllTargets(): Promise<Conference[]> {
     const allConferences: Conference[] = [];
-    
+
     // Define targets with priority order: GitHub -> FireCrawl -> Apify
     const targets = [
       {
@@ -437,12 +437,12 @@ export class ApifyScraper {
     for (const target of targets) {
       try {
         console.log(`\n--- Starting Apify scraping for ${target.name} ---`);
-        
+
         const conferences = await this.scrapeTargetWithRetry(target);
         allConferences.push(...conferences);
-        
+
         console.log(`Completed ${target.name}: ${conferences.length} conferences found`);
-        
+
         // Add delay between targets to avoid rate limits
         if (target !== targets[targets.length - 1]) {
           console.log('Waiting 2 seconds before next target...');
@@ -466,11 +466,11 @@ export class ApifyScraper {
     maxRetries: number;
   }): Promise<Conference[]> {
     let lastError: Error | null = null;
-    
+
     for (let attempt = 1; attempt <= target.maxRetries; attempt++) {
       try {
         console.log(`Attempt ${attempt}/${target.maxRetries} for ${target.name}...`);
-        
+
         const run = await this.client.actor(target.actor).call({
           startUrls: [{ url: target.url }],
           maxRequestRetries: 1,
@@ -563,11 +563,11 @@ export class ApifyScraper {
         if (run && run.defaultDatasetId) {
           const { items } = await this.client.dataset(run.defaultDatasetId).listItems();
           console.log(`Raw items from Apify: ${items.length}`);
-          
+
           if (items.length > 0) {
             console.log('Sample raw item:', JSON.stringify(items[0], null, 2));
           }
-          
+
           const conferences = this.parseScrapedData(items);
           console.log(`Found ${conferences.length} conferences from ${target.name}`);
           return conferences;
@@ -578,7 +578,7 @@ export class ApifyScraper {
       } catch (error) {
         lastError = error as Error;
         console.error(`Attempt ${attempt} failed for ${target.name}:`, error);
-        
+
         if (attempt < target.maxRetries) {
           const delay = Math.pow(2, attempt) * 1000; // Exponential backoff: 2s, 4s, 8s
           console.log(`Waiting ${delay}ms before retry...`);
@@ -586,7 +586,7 @@ export class ApifyScraper {
         }
       }
     }
-    
+
     throw lastError || new Error(`Failed to scrape ${target.name} after ${target.maxRetries} attempts`);
   }
 

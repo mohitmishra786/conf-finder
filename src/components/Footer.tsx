@@ -6,30 +6,30 @@ import { getLastUpdatedTimestamp } from '@/lib/database';
 
 export default function Footer() {
   const [lastUpdated, setLastUpdated] = useState<string>('');
-  
+
   useEffect(() => {
     const fetchLastUpdated = async () => {
       try {
         const lastUpdatedTimestamp = await getLastUpdatedTimestamp();
-        const formattedDate = lastUpdatedTimestamp 
+        const formattedDate = lastUpdatedTimestamp
           ? new Date(lastUpdatedTimestamp).toLocaleString('en-US', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-              timeZoneName: 'short'
-            })
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZoneName: 'short'
+          })
           : new Date().toLocaleString('en-US', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-              timeZoneName: 'short'
-            });
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZoneName: 'short'
+          });
         setLastUpdated(formattedDate);
-      } catch (error) {
+      } catch {
         // Fallback to current time if database is not set up
         setLastUpdated(new Date().toLocaleString('en-US', {
           year: 'numeric',
@@ -41,7 +41,7 @@ export default function Footer() {
         }));
       }
     };
-    
+
     fetchLastUpdated();
   }, []);
 

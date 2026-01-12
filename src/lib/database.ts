@@ -72,23 +72,23 @@ export async function getAllDomainsWithConferences(): Promise<Domain[]> {
     if (domainsError) throw domainsError;
 
     // Get all upcoming conferences (try the view first, fallback to direct table)
-    let conferences: any[] = [];
+    let conferences: Record<string, unknown>[] = [];
     try {
       const { data: viewData, error: viewError } = await supabase
         .from('conferences_with_domains')
         .select('*')
         .order('start_date');
-      
+
       if (!viewError && viewData) {
         conferences = viewData;
       }
-    } catch (viewError) {
+    } catch {
       // If view doesn't exist or fails, try direct table query
       const { data: tableData, error: tableError } = await supabase
         .from('conferences')
         .select('*')
         .order('start_date');
-      
+
       if (!tableError && tableData) {
         conferences = tableData;
       }
@@ -96,14 +96,14 @@ export async function getAllDomainsWithConferences(): Promise<Domain[]> {
 
     // Group conferences by domain
     const domainMap = new Map<string, Domain>();
-    
+
     domains?.forEach(domain => {
       domainMap.set(domain.slug, mapDomainRow(domain));
     });
 
     console.log(`Total conferences found: ${conferences?.length || 0}`);
     console.log(`Available domains: ${Array.from(domainMap.keys()).join(', ')}`);
-    
+
     conferences?.forEach(conference => {
       const domainSlug = conference.domain_slug as string;
       const domain = domainMap.get(domainSlug);
@@ -160,7 +160,7 @@ export async function upsertConferences(conferences: Conference[], domainSlug: s
     for (const conference of conferences) {
       const insertData = mapConferenceToInsert(conference, domainSlug);
       console.log('Insert data:', JSON.stringify(insertData, null, 2));
-      
+
       const { data, error } = await supabaseAdmin
         .from('conferences')
         .upsert(insertData, {
@@ -314,7 +314,7 @@ export async function searchConferences(searchTerm: string): Promise<Conference[
   try {
     // Sanitize search term to prevent SQL injection
     const sanitizedTerm = searchTerm.replace(/[%_]/g, '\\$&');
-    
+
     const { data, error } = await supabase
       .from('conferences_with_domains')
       .select('*')

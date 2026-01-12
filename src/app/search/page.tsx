@@ -1,33 +1,33 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Domain, Conference } from '@/types/conference';
 import { searchConferences } from '@/lib/search';
-import { getAllDomainsWithConferences } from '@/lib/database';
+
 import Header from '@/components/Header';
 import ConferenceCard from '@/components/ConferenceCard';
 import Footer from '@/components/Footer';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
-export default function SearchPage() {
+function SearchContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  
+
   const [conferences, setConferences] = useState<Conference[]>([]);
   const [domains, setDomains] = useState<Domain[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const conferencesPerPage = 12;
-  
+
   // Filter state
   const [selectedDomain, setSelectedDomain] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   // Get initial search term from URL
   const initialSearchTerm = searchParams.get('q') || '';
   const initialDomain = searchParams.get('domain') || 'all';
@@ -42,26 +42,27 @@ export default function SearchPage() {
   // Separate useEffect for loading data
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadData = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       console.log('Loading data...');
       // Load domains for filter dropdown
       const response = await fetch('/api/conferences');
       console.log('API response status:', response.status);
-      
+
       if (!response.ok) {
         throw new Error(`Failed to fetch conferences: ${response.status}`);
       }
-      
+
       const domainsData = await response.json();
       console.log('Domains data loaded:', domainsData.length, 'domains');
       setDomains(domainsData);
-      
+
       // Perform search
       await performSearch();
     } catch (err) {
@@ -75,9 +76,9 @@ export default function SearchPage() {
   const performSearch = async () => {
     try {
       console.log('Performing search with:', { searchTerm, selectedDomain, domainsCount: domains.length });
-      
+
       let searchResults: Conference[] = [];
-      
+
       if (searchTerm.trim()) {
         // Search across all conferences using the search function
         const searchResultsData = searchConferences(domains, searchTerm);
@@ -88,7 +89,7 @@ export default function SearchPage() {
         searchResults = domains.flatMap(domain => domain.conferences);
         console.log('All conferences from all domains:', searchResults.length);
       }
-      
+
       // Filter by domain if selected
       if (selectedDomain !== 'all') {
         console.log('Filtering by domain:', selectedDomain);
@@ -116,11 +117,11 @@ export default function SearchPage() {
           searchResults = [];
         }
       }
-      
+
       console.log('Final search results:', searchResults.length);
       setConferences(searchResults);
       setTotalPages(Math.ceil(searchResults.length / conferencesPerPage));
-      
+
       // Update URL
       updateURL();
     } catch (err) {
@@ -134,7 +135,7 @@ export default function SearchPage() {
     if (searchTerm) params.set('q', searchTerm);
     if (selectedDomain !== 'all') params.set('domain', selectedDomain);
     if (currentPage > 1) params.set('page', currentPage.toString());
-    
+
     const newURL = params.toString() ? `/search?${params.toString()}` : '/search';
     router.push(newURL, { scroll: false });
   };
@@ -161,7 +162,7 @@ export default function SearchPage() {
   const getPaginationNumbers = () => {
     const numbers = [];
     const maxVisible = 5;
-    
+
     if (totalPages <= maxVisible) {
       for (let i = 1; i <= totalPages; i++) {
         numbers.push(i);
@@ -189,13 +190,14 @@ export default function SearchPage() {
         numbers.push(totalPages);
       }
     }
-    
+
     return numbers;
   };
 
   // Update URL when search or filters change
   useEffect(() => {
     updateURL();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm, selectedDomain, currentPage]);
 
   // Perform search when search term or domain changes
@@ -204,6 +206,7 @@ export default function SearchPage() {
       setCurrentPage(1); // Reset to page 1 when search or domain changes
       performSearch();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm, selectedDomain]);
 
   if (loading) {
@@ -221,7 +224,7 @@ export default function SearchPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Header onSearch={handleSearch} searchTerm={searchTerm} />
-      
+
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Filters */}
         <div className="mb-8">
@@ -244,7 +247,7 @@ export default function SearchPage() {
                 ))}
               </select>
             </div>
-            
+
             <div className="text-sm text-gray-600 dark:text-gray-400">
               {conferences.length} conference{conferences.length !== 1 ? 's' : ''} found
               {selectedDomain !== 'all' && (
@@ -284,24 +287,23 @@ export default function SearchPage() {
                 >
                   Previous
                 </button>
-                
+
                 {getPaginationNumbers().map((page, index) => (
                   <button
                     key={index}
                     onClick={() => typeof page === 'number' ? handlePageChange(page) : undefined}
                     disabled={page === '...'}
-                    className={`px-3 py-2 text-sm font-medium rounded-md ${
-                      page === currentPage
-                        ? 'bg-blue-600 text-white'
-                        : page === '...'
+                    className={`px-3 py-2 text-sm font-medium rounded-md ${page === currentPage
+                      ? 'bg-blue-600 text-white'
+                      : page === '...'
                         ? 'text-gray-400 cursor-default'
                         : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700'
-                    }`}
+                      }`}
                   >
                     {page}
                   </button>
                 ))}
-                
+
                 <button
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
@@ -315,7 +317,7 @@ export default function SearchPage() {
         ) : (
           <div className="text-center py-12">
             <div className="text-gray-600 dark:text-gray-400 text-lg mb-4">
-              {searchTerm || selectedDomain !== 'all' 
+              {searchTerm || selectedDomain !== 'all'
                 ? 'No conferences found matching your criteria.'
                 : 'No conferences available.'
               }
@@ -334,8 +336,24 @@ export default function SearchPage() {
           </div>
         )}
       </main>
-      
+
       <Footer />
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <Header onSearch={() => { }} searchTerm="" />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <LoadingSpinner />
+        </main>
+        <Footer />
+      </div>
+    }>
+      <SearchContent />
+    </Suspense>
   );
 } 

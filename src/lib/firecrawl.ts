@@ -1,6 +1,6 @@
 import FireCrawlApp from '@mendable/firecrawl-js';
 import { Conference } from '@/types/conference';
-import { parseISO, isAfter, startOfDay } from 'date-fns';
+import { parseISO } from 'date-fns';
 import { DOMAIN_MAPPINGS } from '@/constants/domains';
 
 // Domain-specific search queries - more specific to target actual conferences
@@ -68,11 +68,11 @@ export class FireCrawlScraper {
       const match = text.match(pattern);
       if (match) {
         let dateStr = match[0];
-        
+
         // Handle month names
         if (match[1] && isNaN(Number(match[1]))) {
-          const monthNames = ['january', 'february', 'march', 'april', 'may', 'june', 
-                             'july', 'august', 'september', 'october', 'november', 'december'];
+          const monthNames = ['january', 'february', 'march', 'april', 'may', 'june',
+            'july', 'august', 'september', 'october', 'november', 'december'];
           const monthIndex = monthNames.indexOf(match[1].toLowerCase());
           if (monthIndex !== -1) {
             const month = String(monthIndex + 1).padStart(2, '0');
@@ -81,90 +81,89 @@ export class FireCrawlScraper {
             dateStr = `${year}-${month}-${day}`;
           }
         }
-        
+
         // Handle YYYY-MM format by adding day 01
         if (/^\d{4}-\d{2}$/.test(dateStr)) {
           dateStr = `${dateStr}-01`;
         }
-        
+
         // Handle just year by adding month and day
         if (/^\d{4}$/.test(dateStr)) {
           dateStr = `${dateStr}-01-01`;
         }
-        
+
         return this.extractDate(dateStr);
       }
     }
-    
+
     return null;
   }
 
   // Check if a result is likely a conference event
   private isConferenceEvent(title: string, description: string, url: string): boolean {
     const text = `${title} ${description} ${url}`.toLowerCase();
-    
+
     // Conference-related keywords that indicate this is an actual event
     const conferenceKeywords = [
       'conference', 'summit', 'symposium', 'workshop', 'meetup', 'event',
       'call for papers', 'cfp', 'registration', 'register', 'attend',
       'speakers', 'agenda', 'schedule', 'venue', 'location'
     ];
-    
+
     // Keywords that indicate this is NOT a conference (articles, blogs, etc.)
     const nonConferenceKeywords = [
       'blog', 'article', 'post', 'news', 'announcement', 'deadline',
       'list of', 'top 10', 'best', 'guide', 'tutorial', 'how to',
       'review', 'recap', 'summary', 'report', 'analysis'
     ];
-    
+
     // Check for conference keywords
     const hasConferenceKeywords = conferenceKeywords.some(keyword => text.includes(keyword));
-    
+
     // Check for non-conference keywords
     const hasNonConferenceKeywords = nonConferenceKeywords.some(keyword => text.includes(keyword));
-    
+
     // More intelligent filtering:
     // 1. If it has obvious non-conference keywords, reject it
     if (hasNonConferenceKeywords) {
       console.log(`Rejecting due to non-conference keywords: "${title}"`);
       return false;
     }
-    
+
     // 2. If it has conference keywords, accept it
     if (hasConferenceKeywords) {
       console.log(`Accepting due to conference keywords: "${title}"`);
       return true;
     }
-    
+
     // 3. If the title contains "conference" or "summit" or "2025", it's likely a conference
     const titleLower = title.toLowerCase();
     if (titleLower.includes('conference') || titleLower.includes('summit') || titleLower.includes('2025')) {
       console.log(`Accepting based on title keywords: "${title}"`);
       return true;
     }
-    
+
     // 4. If the URL contains conference-related terms, accept it
     const urlLower = url.toLowerCase();
     if (urlLower.includes('conference') || urlLower.includes('summit') || urlLower.includes('event')) {
       console.log(`Accepting based on URL keywords: "${title}"`);
       return true;
     }
-    
+
     console.log(`Rejecting - no clear conference indicators: "${title}"`);
     return false;
   }
 
   // Parse FireCrawl search results into Conference objects
-  private parseSearchResults(results: any[], domainSlug: string): Conference[] {
+  private parseSearchResults(results: Record<string, unknown>[], domainSlug: string): Conference[] {
     const conferences: Conference[] = [];
-    const now = startOfDay(new Date());
 
     console.log(`Parsing ${results.length} search results for domain ${domainSlug}...`);
 
     for (const result of results) {
       try {
         const { title, description, url } = result;
-        
+
         if (!title || !url) {
           console.log('Skipping result due to missing title or URL');
           continue;
@@ -175,19 +174,19 @@ export class FireCrawlScraper {
         console.log(`Description: ${description || 'No description'}`);
 
         // Check if this is likely a conference event
-        if (!this.isConferenceEvent(title, description || '', url)) {
+        if (!this.isConferenceEvent(title as string, (description as string) || '', url as string)) {
           console.log('Skipping non-conference result:', title);
           continue;
         }
 
         // Extract date from title or description using enhanced extraction
-        const fullText = `${title} ${description || ''}`;
+        const fullText = `${title as string} ${(description as string) || ''}`;
         let startDate = this.extractDateFromText(fullText);
-        
+
         // If no date found, try to extract from URL or use a default future date
         if (!startDate) {
           // Try to extract year from URL
-          const urlYearMatch = url.match(/\b(202[5-6])\b/);
+          const urlYearMatch = (url as string).match(/\b(202[5-6])\b/);
           if (urlYearMatch) {
             startDate = `${urlYearMatch[1]}-06-01`; // Default to June 1st of the year
           } else {
@@ -208,25 +207,29 @@ export class FireCrawlScraper {
         const conferenceDate = parseISO(startDate);
         const currentYear = new Date().getFullYear();
         const conferenceYear = conferenceDate.getFullYear();
-        
+
         if (conferenceYear < currentYear) {
           console.log('Skipping past conference:', title);
           continue;
         }
 
         // Extract location information from description
-        const locationMatch = description?.match(/(?:in|at|@)\s+([^,]+(?:,\s*[^,]+)*)/i);
-        const location = locationMatch ? locationMatch[1].trim() : '';
-        
+        const locationMatch = (description as string | undefined)?.match(/(?:in|at|@)\s+([^,]+(?:,\s*[^,]+)*)/i);
+        if (locationMatch) {
+          console.log(`Potential location found: ${locationMatch[1].trim()}`);
+        }
+
         // Determine if it's online
-        const online = title.toLowerCase().includes('virtual') || 
-                      title.toLowerCase().includes('online') || 
-                      description?.toLowerCase().includes('virtual') ||
-                      description?.toLowerCase().includes('online');
+        const titleLower = (title as string).toLowerCase();
+        const descLower = ((description as string) || '').toLowerCase();
+        const online = titleLower.includes('virtual') ||
+          titleLower.includes('online') ||
+          descLower.includes('virtual') ||
+          descLower.includes('online');
 
         const conference: Conference = {
-          name: title,
-          url,
+          name: title as string,
+          url: url as string,
           startDate,
           endDate: startDate, // Use same date as end date if not specified
           city: '',
@@ -234,7 +237,7 @@ export class FireCrawlScraper {
           online,
           cfp: undefined,
           twitter: undefined,
-          description: description || '',
+          description: (description as string) || '',
           source: 'firecrawl',
           scrapedAt: new Date().toISOString(),
           isNew: true
@@ -268,7 +271,7 @@ export class FireCrawlScraper {
   // Search for conferences in a specific domain
   async searchDomain(domainSlug: string, onConferencesFound?: (conferences: Conference[], domainSlug: string) => Promise<void>): Promise<Conference[]> {
     const query = DOMAIN_SEARCH_QUERIES[domainSlug];
-    
+
     if (!query) {
       console.log(`No search query found for domain: ${domainSlug}`);
       return [];
@@ -277,8 +280,7 @@ export class FireCrawlScraper {
     console.log(`Searching for ${domainSlug} conferences with query: "${query}"`);
 
     const maxRetries = 3;
-    let lastError: Error | null = null;
-    
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         console.log(`Making FireCrawl API call (Attempt ${attempt}/${maxRetries})...`);
@@ -296,7 +298,8 @@ export class FireCrawlScraper {
           if (searchResult.data.length > 0) {
             console.log('Sample result:', JSON.stringify(searchResult.data[0], null, 2));
           }
-          const conferences = this.parseSearchResults(searchResult.data, domainSlug);
+          const results = (searchResult.data as unknown as Record<string, unknown>[]) || [];
+          const conferences = this.parseSearchResults(results, domainSlug);
 
           console.log(`Parsed ${conferences.length} conferences for domain ${domainSlug}`);
 
@@ -312,15 +315,14 @@ export class FireCrawlScraper {
           return [];
         }
       } catch (error) {
-        lastError = error as Error;
         console.error(`Attempt ${attempt} failed for query "${query}":`, error);
-        
+
         // Check if it's a rate limit error
         const errorMessage = error instanceof Error ? error.message : String(error);
-        const isRateLimitError = errorMessage.includes('rate limit') || 
-                                errorMessage.includes('429') || 
-                                errorMessage.includes('too many requests');
-        
+        const isRateLimitError = errorMessage.includes('rate limit') ||
+          errorMessage.includes('429') ||
+          errorMessage.includes('too many requests');
+
         if (attempt < maxRetries) {
           // Use a fixed delay of 18 seconds on rate limit errors, otherwise exponential backoff
           let delay: number;
@@ -338,7 +340,7 @@ export class FireCrawlScraper {
         }
       }
     }
-    
+
     return [];
   }
 
@@ -403,9 +405,9 @@ export class FireCrawlScraper {
 
     const totalConferences = Array.from(results.values()).reduce((sum, conferences) => sum + conferences.length, 0);
     const successfulDomains = domains.length - failedDomains.length;
-    
+
     console.log(`\nFireCrawl scraping completed: ${totalConferences} total conferences found across ${successfulDomains}/${domains.length} domains`);
-    
+
     if (failedDomains.length > 0) {
       console.error(`Failed domains: ${failedDomains.join(', ')}`);
     }
