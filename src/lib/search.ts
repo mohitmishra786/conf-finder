@@ -1,51 +1,92 @@
-import Fuse from 'fuse.js';
-import { Domain, SearchResult } from '@/types/conference';
+/**
+ * Search utilities for conf-finder v2.0
+ *
+ * Provides fuzzy search functionality using Fuse.js
+ */
 
+import Fuse from 'fuse.js';
+import { Conference, SearchResult, Domain } from '@/types/conference';
+
+// Fuse.js configuration for fuzzy search
+const fuseOptions = {
+  keys: [
+    { name: 'name', weight: 2 },
+    { name: 'description', weight: 1 },
+    { name: 'city', weight: 1.5 },
+    { name: 'country', weight: 1.5 },
+    { name: 'tags', weight: 1 }
+  ],
+  threshold: 0.3,
+  includeScore: true,
+  minMatchCharLength: 2
+};
+
+/**
+ * Search conferences using fuzzy matching
+ */
 export function searchConferences(
+  conferences: Conference[],
+  searchTerm: string
+): Conference[] {
+  if (!searchTerm || searchTerm.trim().length < 2) {
+    return conferences;
+  }
+
+  const fuse = new Fuse(conferences, fuseOptions);
+  const results = fuse.search(searchTerm.trim());
+
+  return results.map(result => result.item);
+}
+
+/**
+ * Search conferences grouped by domain
+ */
+export function searchConferencesByDomain(
+  conferences: Conference[],
   domains: Domain[],
   searchTerm: string
 ): SearchResult[] {
-  if (!searchTerm.trim()) {
-    return domains.map(domain => ({
-      domain,
-      conferences: domain.conferences
-    }));
+  const filteredConferences = searchConferences(conferences, searchTerm);
+
+  // Group by domain
+  const domainMap = new Map<string, Conference[]>();
+
+  for (const conf of filteredConferences) {
+    if (!domainMap.has(conf.domain)) {
+      domainMap.set(conf.domain, []);
+    }
+    domainMap.get(conf.domain)!.push(conf);
   }
 
-  const fuseOptions = {
-    keys: [
-      'name',
-      'city',
-      'country'
-    ],
-    threshold: 0.3,
-    includeScore: true
-  };
-
+  // Create search results
   const results: SearchResult[] = [];
 
-  domains.forEach(domain => {
-    const fuse = new Fuse(domain.conferences, fuseOptions);
-    const searchResults = fuse.search(searchTerm);
-    
-    const matchedConferences = searchResults
-      .filter(result => result.score && result.score < 0.5)
-      .map(result => result.item);
-
-    if (matchedConferences.length > 0) {
+  for (const domain of domains) {
+    const domainConferences = domainMap.get(domain.slug) || [];
+    if (domainConferences.length > 0) {
       results.push({
         domain,
-        conferences: matchedConferences
+        conferences: domainConferences
       });
     }
-  });
+  }
 
   return results;
 }
 
+/**
+ * Highlight search term in text
+ */
 export function highlightSearchTerm(text: string, searchTerm: string): string {
-  if (!searchTerm.trim()) return text;
-  
-  const regex = new RegExp(`(${searchTerm})`, 'gi');
+  if (!searchTerm || !text) return text;
+
+  const regex = new RegExp(`(${escapeRegExp(searchTerm)})`, 'gi');
   return text.replace(regex, '<mark class="bg-yellow-200 dark:bg-yellow-800">$1</mark>');
-} 
+}
+
+/**
+ * Escape special regex characters
+ */
+function escapeRegExp(string: string): string {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}

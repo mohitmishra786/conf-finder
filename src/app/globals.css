@@ -1,8 +1,44 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Force dark theme - modern tech conference vibe */
+  --background: #000000;
+  --foreground: #f5f5f5;
+
+  /* Primary gradient: Blue to Purple */
+  --primary-blue: #3b82f6;
+  --primary-purple: #8b5cf6;
+  --primary-pink: #ec4899;
+
+  /* Surface colors */
+  --surface-dark: #0a0a0a;
+  --surface-card: #111111;
+  --surface-elevated: #1a1a1a;
+
+  /* Border colors */
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-medium: rgba(255, 255, 255, 0.12);
+
+  /* Text colors */
+  --text-primary: #ffffff;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+
+  /* Accent colors for badges */
+  --badge-green: rgba(34, 197, 94, 0.15);
+  --badge-green-text: #4ade80;
+  --badge-red: rgba(239, 68, 68, 0.15);
+  --badge-red-text: #f87171;
+  --badge-yellow: rgba(234, 179, 8, 0.15);
+  --badge-yellow-text: #facc15;
+  --badge-purple: rgba(168, 85, 247, 0.15);
+  --badge-purple-text: #c084fc;
+  --badge-blue: rgba(59, 130, 246, 0.15);
+  --badge-blue-text: #60a5fa;
+
+  /* Glow effects */
+  --glow-blue: 0 0 60px -15px rgba(59, 130, 246, 0.5);
+  --glow-purple: 0 0 60px -15px rgba(139, 92, 246, 0.5);
 }
 
 @theme inline {
@@ -12,15 +48,280 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
+/* Force dark mode */
+@media (prefers-color-scheme: light) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #000000;
+    --foreground: #f5f5f5;
   }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+/* Gradient text utility */
+.gradient-text {
+  background: linear-gradient(135deg, var(--primary-blue), var(--primary-purple), var(--primary-pink));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Card styling */
+.card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 1rem;
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  border-color: var(--border-medium);
+  box-shadow: var(--glow-blue);
+  transform: translateY(-2px);
+}
+
+/* Form elements - Enhanced styling for dark theme */
+input[type="text"],
+input[type="search"],
+input[type="email"],
+select,
+textarea {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background: var(--surface-elevated) !important;
+  border: 1px solid var(--border-medium) !important;
+  color: var(--text-primary) !important;
+  border-radius: 0.75rem !important;
+  padding: 0.75rem 1rem !important;
+  font-size: 0.9375rem !important;
+  min-height: 2.75rem;
+  width: 100%;
+  transition: all 0.2s ease !important;
+}
+
+/* Select with custom arrow */
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2371717a'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.75rem center !important;
+  background-size: 1rem !important;
+  padding-right: 2.5rem !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--primary-blue) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2) !important;
+}
+
+input::placeholder {
+  color: var(--text-muted) !important;
+}
+
+/* Select dropdown styling */
+select option {
+  background: var(--surface-elevated);
+  color: var(--text-primary);
+  padding: 0.5rem;
+}
+
+/* Checkbox styling */
+input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 1.25rem !important;
+  height: 1.25rem !important;
+  min-width: 1.25rem;
+  padding: 0 !important;
+  background: var(--surface-elevated) !important;
+  border: 2px solid var(--border-medium) !important;
+  border-radius: 0.375rem !important;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.15s ease !important;
+}
+
+input[type="checkbox"]:checked {
+  background: var(--primary-blue) !important;
+  border-color: var(--primary-blue) !important;
+}
+
+input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 5px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+input[type="checkbox"]:focus {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3) !important;
+}
+
+/* Filter label styling */
+.filter-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  transition: background-color 0.2s ease;
+  min-height: 2.75rem;
+}
+
+.filter-label:hover {
+  background: var(--surface-elevated);
+}
+
+/* Button base */
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary-blue), var(--primary-purple));
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
+  min-height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--glow-purple);
+}
+
+.btn-primary:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.4);
+}
+
+/* Badge styles */
+.badge {
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.badge-green {
+  background: var(--badge-green);
+  color: var(--badge-green-text);
+}
+
+.badge-red {
+  background: var(--badge-red);
+  color: var(--badge-red-text);
+}
+
+.badge-yellow {
+  background: var(--badge-yellow);
+  color: var(--badge-yellow-text);
+}
+
+.badge-purple {
+  background: var(--badge-purple);
+  color: var(--badge-purple-text);
+}
+
+.badge-blue {
+  background: var(--badge-blue);
+  color: var(--badge-blue-text);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 0.5rem;
+  height: 0.5rem;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-medium);
+  border-radius: 0.25rem;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Focus visible for keyboard navigation */
+:focus-visible {
+  outline: 2px solid var(--primary-blue);
+  outline-offset: 2px;
+}
+
+/* Animation for loading */
+@keyframes pulse-glow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+  }
+
+  50% {
+    box-shadow: 0 0 40px rgba(59, 130, 246, 0.5);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Responsive breakpoints */
+/* Small phones */
+@media (max-width: 480px) {
+  .card {
+    border-radius: 0.75rem;
+  }
+
+  input[type="text"],
+  input[type="search"],
+  select {
+    font-size: 1rem !important;
+    padding: 0.875rem 1rem !important;
+  }
+}
+
+/* Tablets */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .card {
+    border-radius: 1rem;
+  }
+}
+
+/* Desktop */
+@media (min-width: 1025px) {
+  .card:hover {
+    transform: translateY(-4px);
+  }
 }

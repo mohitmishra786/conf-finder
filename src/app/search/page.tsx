@@ -1,220 +1,147 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Domain, Conference } from '@/types/conference';
-import { searchConferences } from '@/lib/search';
+import { Conference, Domain, ConferenceData, SortOption } from '@/types/conference';
 
 import Header from '@/components/Header';
 import ConferenceCard from '@/components/ConferenceCard';
 import Footer from '@/components/Footer';
-import LoadingSpinner from '@/components/LoadingSpinner';
 
 function SearchContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const [conferences, setConferences] = useState<Conference[]>([]);
-  const [domains, setDomains] = useState<Domain[]>([]);
+  const [data, setData] = useState<ConferenceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const conferencesPerPage = 12;
-
-  // Filter state
-  const [selectedDomain, setSelectedDomain] = useState<string>('all');
-  const [searchTerm, setSearchTerm] = useState('');
-
-  // Get initial search term from URL
+  // Filter state from URL params
   const initialSearchTerm = searchParams.get('q') || '';
   const initialDomain = searchParams.get('domain') || 'all';
-  const initialPage = parseInt(searchParams.get('page') || '1');
+  const initialCfpOnly = searchParams.get('cfp') === 'true';
+  const initialFinancialAid = searchParams.get('aid') === 'true';
+
+  const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
+  const [selectedDomain, setSelectedDomain] = useState(initialDomain);
+  const [showCfpOnly, setShowCfpOnly] = useState(initialCfpOnly);
+  const [showFinancialAidOnly, setShowFinancialAidOnly] = useState(initialFinancialAid);
+  const [sortBy, setSortBy] = useState<SortOption>('startDate');
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const conferencesPerPage = 12;
 
   useEffect(() => {
-    setSearchTerm(initialSearchTerm);
-    setSelectedDomain(initialDomain);
-    setCurrentPage(initialPage);
-  }, [initialSearchTerm, initialDomain, initialPage]);
-
-  // Separate useEffect for loading data
-  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const response = await fetch('/api/conferences');
+        if (!response.ok) {
+          throw new Error('Failed to fetch conferences');
+        }
+        const jsonData = await response.json();
+        setData(jsonData);
+      } catch (err) {
+        console.error('Error loading data:', err);
+        setError('Failed to load conference data');
+      } finally {
+        setLoading(false);
+      }
+    };
     loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loadData = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      console.log('Loading data...');
-      // Load domains for filter dropdown
-      const response = await fetch('/api/conferences');
-      console.log('API response status:', response.status);
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch conferences: ${response.status}`);
-      }
-
-      const domainsData = await response.json();
-      console.log('Domains data loaded:', domainsData.length, 'domains');
-      setDomains(domainsData);
-
-      // Perform search
-      await performSearch();
-    } catch (err) {
-      console.error('Error loading data:', err);
-      setError('Failed to load conference data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const performSearch = async () => {
-    try {
-      console.log('Performing search with:', { searchTerm, selectedDomain, domainsCount: domains.length });
-
-      let searchResults: Conference[] = [];
-
-      if (searchTerm.trim()) {
-        // Search across all conferences using the search function
-        const searchResultsData = searchConferences(domains, searchTerm);
-        searchResults = searchResultsData.flatMap(result => result.conferences);
-        console.log('Search results from search function:', searchResults.length);
-      } else {
-        // Get all conferences from all domains
-        searchResults = domains.flatMap(domain => domain.conferences);
-        console.log('All conferences from all domains:', searchResults.length);
-      }
-
-      // Filter by domain if selected
-      if (selectedDomain !== 'all') {
-        console.log('Filtering by domain:', selectedDomain);
-        // Get conferences only from the selected domain
-        const selectedDomainData = domains.find(d => d.slug === selectedDomain);
-        if (selectedDomainData) {
-          console.log('Found domain data:', selectedDomainData.name, 'with', selectedDomainData.conferences.length, 'conferences');
-          if (searchTerm.trim()) {
-            // If there's a search term, filter the selected domain's conferences
-            searchResults = selectedDomainData.conferences.filter(conference => {
-              const searchLower = searchTerm.toLowerCase();
-              return (
-                conference.name.toLowerCase().includes(searchLower) ||
-                conference.city.toLowerCase().includes(searchLower) ||
-                conference.country.toLowerCase().includes(searchLower) ||
-                (conference.description && conference.description.toLowerCase().includes(searchLower))
-              );
-            });
-          } else {
-            // If no search term, use all conferences from the selected domain
-            searchResults = selectedDomainData.conferences;
-          }
-        } else {
-          console.log('Domain not found:', selectedDomain);
-          searchResults = [];
-        }
-      }
-
-      console.log('Final search results:', searchResults.length);
-      setConferences(searchResults);
-      setTotalPages(Math.ceil(searchResults.length / conferencesPerPage));
-
-      // Update URL
-      updateURL();
-    } catch (err) {
-      console.error('Error performing search:', err);
-      setError('Failed to perform search');
-    }
-  };
-
-  const updateURL = () => {
+  // Update URL when filters change
+  useEffect(() => {
     const params = new URLSearchParams();
     if (searchTerm) params.set('q', searchTerm);
     if (selectedDomain !== 'all') params.set('domain', selectedDomain);
-    if (currentPage > 1) params.set('page', currentPage.toString());
+    if (showCfpOnly) params.set('cfp', 'true');
+    if (showFinancialAidOnly) params.set('aid', 'true');
 
     const newURL = params.toString() ? `/search?${params.toString()}` : '/search';
-    router.push(newURL, { scroll: false });
-  };
+    router.replace(newURL, { scroll: false });
+  }, [searchTerm, selectedDomain, showCfpOnly, showFinancialAidOnly, router]);
 
-  const handleSearch = (term: string) => {
-    setSearchTerm(term);
-  };
+  // Filter and sort conferences
+  const filteredConferences = useMemo(() => {
+    if (!data) return [];
 
-  const handleDomainChange = (domain: string) => {
-    setSelectedDomain(domain);
-  };
+    let conferences = [...data.conferences];
+
+    // Filter by domain
+    if (selectedDomain !== 'all') {
+      conferences = conferences.filter(c => c.domain === selectedDomain);
+    }
+
+    // Filter by CFP open
+    if (showCfpOnly) {
+      conferences = conferences.filter(c => c.cfp?.isOpen);
+    }
+
+    // Filter by financial aid
+    if (showFinancialAidOnly) {
+      conferences = conferences.filter(c => c.financialAid?.available);
+    }
+
+    // Filter by search term
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      conferences = conferences.filter(c =>
+        c.name.toLowerCase().includes(term) ||
+        c.city.toLowerCase().includes(term) ||
+        c.country.toLowerCase().includes(term) ||
+        c.description?.toLowerCase().includes(term) ||
+        c.tags.some(tag => tag.toLowerCase().includes(term))
+      );
+    }
+
+    // Sort
+    switch (sortBy) {
+      case 'cfpDeadline':
+        conferences.sort((a, b) => {
+          if (!a.cfp && !b.cfp) return 0;
+          if (!a.cfp) return 1;
+          if (!b.cfp) return -1;
+          return a.cfp.endDate.localeCompare(b.cfp.endDate);
+        });
+        break;
+      case 'name':
+        conferences.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      case 'startDate':
+      default:
+        conferences.sort((a, b) => a.startDate.localeCompare(b.startDate));
+        break;
+    }
+
+    return conferences;
+  }, [data, selectedDomain, showCfpOnly, showFinancialAidOnly, searchTerm, sortBy]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredConferences.length / conferencesPerPage);
+  const startIndex = (currentPage - 1) * conferencesPerPage;
+  const currentConferences = filteredConferences.slice(startIndex, startIndex + conferencesPerPage);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Get current page conferences
-  const startIndex = (currentPage - 1) * conferencesPerPage;
-  const endIndex = startIndex + conferencesPerPage;
-  const currentConferences = conferences.slice(startIndex, endIndex);
-
-  // Generate pagination numbers
-  const getPaginationNumbers = () => {
-    const numbers = [];
-    const maxVisible = 5;
-
-    if (totalPages <= maxVisible) {
-      for (let i = 1; i <= totalPages; i++) {
-        numbers.push(i);
-      }
-    } else {
-      if (currentPage <= 3) {
-        for (let i = 1; i <= 4; i++) {
-          numbers.push(i);
-        }
-        numbers.push('...');
-        numbers.push(totalPages);
-      } else if (currentPage >= totalPages - 2) {
-        numbers.push(1);
-        numbers.push('...');
-        for (let i = totalPages - 3; i <= totalPages; i++) {
-          numbers.push(i);
-        }
-      } else {
-        numbers.push(1);
-        numbers.push('...');
-        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
-          numbers.push(i);
-        }
-        numbers.push('...');
-        numbers.push(totalPages);
-      }
-    }
-
-    return numbers;
-  };
-
-  // Update URL when search or filters change
+  // Reset to page 1 when filters change
   useEffect(() => {
-    updateURL();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm, selectedDomain, currentPage]);
-
-  // Perform search when search term or domain changes
-  useEffect(() => {
-    if (!loading && domains.length > 0) {
-      setCurrentPage(1); // Reset to page 1 when search or domain changes
-      performSearch();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm, selectedDomain]);
+    setCurrentPage(1);
+  }, [searchTerm, selectedDomain, showCfpOnly, showFinancialAidOnly, sortBy]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <Header onSearch={handleSearch} searchTerm={searchTerm} />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <LoadingSpinner />
+      <div className="min-h-screen bg-black">
+        <Header />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 flex items-center justify-center min-h-[60vh]">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-12 h-12 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-zinc-400">Loading conferences...</p>
+          </div>
         </main>
         <Footer />
       </div>
@@ -222,45 +149,106 @@ function SearchContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Header onSearch={handleSearch} searchTerm={searchTerm} />
+    <div className="min-h-screen bg-black">
+      <Header />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Filters */}
+        {/* Page Header */}
         <div className="mb-8">
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-            <div className="flex-1">
-              <label htmlFor="domain-filter" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Filter by Domain
-              </label>
-              <select
-                id="domain-filter"
-                value={selectedDomain}
-                onChange={(e) => handleDomainChange(e.target.value)}
-                className="block w-full sm:w-64 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="all">All Domains</option>
-                {domains.map((domain) => (
-                  <option key={domain.slug} value={domain.slug}>
-                    {domain.name} ({domain.conferences.length})
-                  </option>
-                ))}
-              </select>
+          <h1 className="text-3xl font-bold text-white mb-2">
+            {showCfpOnly ? (
+              <>Open <span className="gradient-text">Call for Papers</span></>
+            ) : (
+              <>Search <span className="gradient-text">Conferences</span></>
+            )}
+          </h1>
+          <p className="text-zinc-400">
+            {showCfpOnly
+              ? 'Find conferences accepting talk submissions right now.'
+              : 'Filter and discover tech conferences worldwide.'}
+          </p>
+        </div>
+
+        {/* Filters */}
+        <div className="mb-8 card p-6">
+          <div className="flex flex-col gap-4">
+            {/* Search Row */}
+            <div className="flex flex-col lg:flex-row gap-4">
+              <div className="flex-1">
+                <input
+                  type="text"
+                  placeholder="Search by name, city, country, or tags..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+
+              <div className="w-full lg:w-48">
+                <select
+                  value={selectedDomain}
+                  onChange={(e) => setSelectedDomain(e.target.value)}
+                  className="w-full"
+                >
+                  <option value="all">All Categories</option>
+                  {data?.domains.map((domain: Domain) => (
+                    <option key={domain.slug} value={domain.slug}>
+                      {domain.name} ({domain.conferenceCount})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="w-full lg:w-40">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as SortOption)}
+                  className="w-full"
+                >
+                  <option value="startDate">Sort by Date</option>
+                  <option value="cfpDeadline">CFP Deadline</option>
+                  <option value="name">Name</option>
+                </select>
+              </div>
             </div>
 
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              {conferences.length} conference{conferences.length !== 1 ? 's' : ''} found
-              {selectedDomain !== 'all' && (
-                <span> in {domains.find(d => d.slug === selectedDomain)?.name}</span>
-              )}
+            {/* Toggle Filters Row */}
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-6">
+                <label className="flex items-center gap-2 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={showCfpOnly}
+                    onChange={(e) => setShowCfpOnly(e.target.checked)}
+                  />
+                  <span className="text-sm text-zinc-400 group-hover:text-white transition-colors">
+                    CFP Open Only
+                  </span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={showFinancialAidOnly}
+                    onChange={(e) => setShowFinancialAidOnly(e.target.checked)}
+                  />
+                  <span className="text-sm text-zinc-400 group-hover:text-white transition-colors">
+                    Financial Aid
+                  </span>
+                </label>
+              </div>
+
+              <div className="text-sm text-zinc-500">
+                {filteredConferences.length} result{filteredConferences.length !== 1 ? 's' : ''}
+              </div>
             </div>
           </div>
         </div>
 
         {/* Error Message */}
         {error && (
-          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
-            <p className="text-red-800 dark:text-red-200">{error}</p>
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
+            <p className="text-red-400">{error}</p>
           </div>
         )}
 
@@ -268,9 +256,9 @@ function SearchContent() {
         {currentConferences.length > 0 ? (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-              {currentConferences.map((conference, index) => (
+              {currentConferences.map((conference: Conference) => (
                 <ConferenceCard
-                  key={`${conference.name}-${index}`}
+                  key={conference.id}
                   conference={conference}
                   searchTerm={searchTerm}
                 />
@@ -279,35 +267,23 @@ function SearchContent() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-center space-x-2">
+              <div className="flex items-center justify-center gap-2">
                 <button
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700"
+                  className="px-4 py-2 text-sm font-medium text-zinc-400 bg-zinc-900 border border-zinc-800 rounded-lg hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                 >
                   Previous
                 </button>
 
-                {getPaginationNumbers().map((page, index) => (
-                  <button
-                    key={index}
-                    onClick={() => typeof page === 'number' ? handlePageChange(page) : undefined}
-                    disabled={page === '...'}
-                    className={`px-3 py-2 text-sm font-medium rounded-md ${page === currentPage
-                      ? 'bg-blue-600 text-white'
-                      : page === '...'
-                        ? 'text-gray-400 cursor-default'
-                        : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700'
-                      }`}
-                  >
-                    {page}
-                  </button>
-                ))}
+                <span className="px-4 py-2 text-sm text-zinc-500">
+                  Page {currentPage} of {totalPages}
+                </span>
 
                 <button
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
-                  className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700"
+                  className="px-4 py-2 text-sm font-medium text-zinc-400 bg-zinc-900 border border-zinc-800 rounded-lg hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                 >
                   Next
                 </button>
@@ -315,24 +291,21 @@ function SearchContent() {
             )}
           </>
         ) : (
-          <div className="text-center py-12">
-            <div className="text-gray-600 dark:text-gray-400 text-lg mb-4">
-              {searchTerm || selectedDomain !== 'all'
-                ? 'No conferences found matching your criteria.'
-                : 'No conferences available.'
-              }
+          <div className="text-center py-16">
+            <div className="text-zinc-500 text-lg mb-4">
+              No conferences found matching your criteria.
             </div>
-            {(searchTerm || selectedDomain !== 'all') && (
-              <button
-                onClick={() => {
-                  setSearchTerm('');
-                  setSelectedDomain('all');
-                }}
-                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-              >
-                Clear Filters
-              </button>
-            )}
+            <button
+              onClick={() => {
+                setSearchTerm('');
+                setSelectedDomain('all');
+                setShowCfpOnly(false);
+                setShowFinancialAidOnly(false);
+              }}
+              className="btn-primary"
+            >
+              Clear Filters
+            </button>
           </div>
         )}
       </main>
@@ -345,10 +318,13 @@ function SearchContent() {
 export default function SearchPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <Header onSearch={() => { }} searchTerm="" />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <LoadingSpinner />
+      <div className="min-h-screen bg-black">
+        <Header />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 flex items-center justify-center min-h-[60vh]">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-12 h-12 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-zinc-400">Loading...</p>
+          </div>
         </main>
         <Footer />
       </div>
@@ -356,4 +332,4 @@ export default function SearchPage() {
       <SearchContent />
     </Suspense>
   );
-} 
+}

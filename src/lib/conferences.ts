@@ -1,133 +1,140 @@
-import { Conference, Domain } from '@/types/conference';
-import { DOMAIN_MAPPINGS, GITHUB_API_BASE, RAW_CONTENT_BASE } from '@/constants/domains';
-import { format, parseISO, isAfter, startOfDay } from 'date-fns';
+/**
+ * Conference utilities for conf-finder v2.0
+ *
+ * Provides formatting and helper functions for conferences.
+ * Data loading is now handled by staticData.ts
+ */
 
-export async function getCurrentYear(): Promise<number> {
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  
-  // If we're in the second half of the year, also include next year's conferences
-  if (now.getMonth() >= 6) {
-    return currentYear + 1;
-  }
-  
-  return currentYear;
-}
+import { Conference } from '@/types/conference';
 
-export async function getAvailableDomains(year: number): Promise<string[]> {
-  try {
-    const response = await fetch(`${GITHUB_API_BASE}/contents/conferences/${year}`, {
-      next: { revalidate: 43200 } // 12 hours
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to fetch domains: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    const domains = data
-      .filter((item: { type: string; name: string }) => item.type === 'file' && item.name.endsWith('.json'))
-      .map((item: { name: string }) => item.name.replace('.json', ''));
-    
-    return domains;
-  } catch (error) {
-    console.error('Error fetching domains:', error);
-    return [];
-  }
-}
-
-export async function getConferencesForDomain(domain: string, year: number): Promise<Conference[]> {
-  try {
-    const response = await fetch(`${RAW_CONTENT_BASE}/conferences/${year}/${domain}.json`, {
-      next: { revalidate: 43200 } // 12 hours
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to fetch conferences for ${domain}: ${response.status}`);
-    }
-    
-    const conferences: Conference[] = await response.json();
-    
-    // Filter for upcoming conferences only
-    const now = startOfDay(new Date());
-    const upcomingConferences = conferences.filter(conference => {
-      try {
-        const startDate = parseISO(conference.startDate);
-        return isAfter(startDate, now);
-      } catch {
-        return false; // Skip conferences with invalid dates
-      }
-    });
-    
-    // Sort by start date (nearest first)
-    return upcomingConferences.sort((a, b) => {
-      const dateA = parseISO(a.startDate);
-      const dateB = parseISO(b.startDate);
-      return dateA.getTime() - dateB.getTime();
-    });
-  } catch (error) {
-    console.error(`Error fetching conferences for ${domain}:`, error);
-    return [];
-  }
-}
-
-export async function getAllConferences(): Promise<Domain[]> {
-  const year = await getCurrentYear();
-  const domains = await getAvailableDomains(year);
-  
-  const domainPromises = domains.map(async (domainSlug) => {
-    const conferences = await getConferencesForDomain(domainSlug, year);
-    const domainInfo = DOMAIN_MAPPINGS[domainSlug] || {
-      name: domainSlug.charAt(0).toUpperCase() + domainSlug.slice(1),
-      description: `Conferences related to ${domainSlug}`
-    };
-    
-    return {
-      slug: domainSlug,
-      name: domainInfo.name,
-      description: domainInfo.description,
-      conferences
-    };
-  });
-  
-  const results = await Promise.all(domainPromises);
-  
-  // Filter out domains with no upcoming conferences
-  return results.filter(domain => domain.conferences.length > 0);
-}
-
+/**
+ * Format a single date for display
+ */
 export function formatDate(dateString: string): string {
   try {
-    const date = parseISO(dateString);
-    return format(date, 'MMM dd, yyyy');
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
   } catch {
     return dateString;
   }
 }
 
+/**
+ * Format date range for display
+ */
 export function formatDateRange(startDate: string, endDate: string): string {
   try {
-    const start = parseISO(startDate);
-    const end = parseISO(endDate);
-    
-    if (start.getTime() === end.getTime()) {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    // Same day
+    if (startDate === endDate) {
       return formatDate(startDate);
     }
-    
-    return `${format(start, 'MMM dd')} - ${format(end, 'MMM dd, yyyy')}`;
+
+    const startMonth = start.toLocaleDateString('en-US', { month: 'short' });
+    const endMonth = end.toLocaleDateString('en-US', { month: 'short' });
+    const startDay = start.getDate();
+    const endDay = end.getDate();
+    const year = end.getFullYear();
+
+    // Same month
+    if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
+      return `${startMonth} ${startDay}-${endDay}, ${year}`;
+    }
+
+    // Different months
+    return `${startMonth} ${startDay} - ${endMonth} ${endDay}, ${year}`;
   } catch {
     return `${startDate} - ${endDate}`;
   }
 }
 
+/**
+ * Get location text for display
+ */
 export function getLocationText(conference: Conference): string {
+  if (conference.hybrid) {
+    if (conference.city && conference.country) {
+      return `${conference.city}, ${conference.country} (Hybrid)`;
+    }
+    return 'Hybrid';
+  }
+
   if (conference.online) {
     return 'Online';
   }
-  
+
   if (conference.city && conference.country) {
     return `${conference.city}, ${conference.country}`;
   }
-  
+
   return conference.city || conference.country || 'Location TBD';
-} 
+}
+
+/**
+ * Get days until conference starts
+ */
+export function getDaysUntilConference(startDate: string): number {
+  const start = new Date(startDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  start.setHours(0, 0, 0, 0);
+
+  const diffTime = start.getTime() - today.getTime();
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+}
+
+/**
+ * Check if conference is happening soon (within 30 days)
+ */
+export function isHappeningSoon(startDate: string): boolean {
+  const days = getDaysUntilConference(startDate);
+  return days >= 0 && days <= 30;
+}
+
+/**
+ * Get domain emoji icon
+ */
+export function getDomainIcon(domain: string): string {
+  const icons: Record<string, string> = {
+    ai: '🤖',
+    web: '🌐',
+    mobile: '📱',
+    devops: '☁️',
+    security: '🔒',
+    data: '📊',
+    gaming: '🎮',
+    blockchain: '⛓️',
+    ux: '🎨',
+    opensource: '💚',
+    general: '💻'
+  };
+
+  return icons[domain] || '📌';
+}
+
+/**
+ * Get domain color
+ */
+export function getDomainColor(domain: string): string {
+  const colors: Record<string, string> = {
+    ai: '#8B5CF6',
+    web: '#3B82F6',
+    mobile: '#10B981',
+    devops: '#F59E0B',
+    security: '#EF4444',
+    data: '#06B6D4',
+    gaming: '#EC4899',
+    blockchain: '#6366F1',
+    ux: '#F472B6',
+    opensource: '#22C55E',
+    general: '#6B7280'
+  };
+
+  return colors[domain] || '#6B7280';
+}
