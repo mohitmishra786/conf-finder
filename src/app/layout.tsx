@@ -13,8 +13,19 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Tech Conferences Directory",
-  description: "Discover upcoming tech conferences across various domains including AI, Cloud Computing, DevOps, and more. Data sourced from confs.tech.",
+  title: "Confab: Tech Conferences Directory",
+  description: "Your open-source tech conference companion. Discover upcoming events, track CFPs, and find financial aid opportunities.",
+  icons: {
+    icon: "/icon.png",
+    shortcut: "/favicon.svg",
+    apple: "/apple-touch-icon.png",
+  },
+  openGraph: {
+    title: "Confab: Tech Conferences",
+    description: "Discover 130+ upcoming tech conferences. Track CFPs and find speaking opportunities.",
+    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
+    type: "website",
+  },
 };
 
 export default function RootLayout({
