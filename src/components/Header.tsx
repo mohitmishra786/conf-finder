@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function Header() {
   return (
@@ -7,13 +8,17 @@ export default function Header() {
         <div className="flex justify-between items-center h-16">
           {/* Logo and Title */}
           <div className="flex items-center">
-            <Link href="/" className="flex items-center space-x-3 group">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center group-hover:shadow-lg group-hover:shadow-blue-500/25 transition-all">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
+            <Link href="/" className="flex items-center gap-3 group">
+              <div className="relative w-9 h-9 transition-transform group-hover:scale-105">
+                <Image
+                  src="/logo.png"
+                  alt="Confab Logo"
+                  fill
+                  className="object-contain rounded-xl"
+                  priority
+                />
               </div>
-              <span className="text-xl font-bold text-white">
+              <span className="text-xl font-bold text-white tracking-tight">
                 Confab
               </span>
             </Link>

@@ -14,14 +14,12 @@ interface ConferenceCardProps {
 }
 
 export default function ConferenceCard({ conference, searchTerm }: ConferenceCardProps) {
-  // Recalculate CFP status based on current date
   const cfpDaysRemaining = conference.cfp
     ? calculateCfpDaysRemaining(conference.cfp.endDate)
     : -1;
   const cfpIsOpen = conference.cfp ? isCfpOpen(conference.cfp.endDate) : false;
   const cfpUrgency = getCfpUrgency(cfpDaysRemaining);
 
-  // Highlight search term in text
   const highlightText = (text: string): string => {
     if (!searchTerm || !text) return text;
     try {
@@ -32,23 +30,16 @@ export default function ConferenceCard({ conference, searchTerm }: ConferenceCar
     }
   };
 
-  // Get badge classes based on CFP urgency
   const getCfpBadgeStyle = () => {
     switch (cfpUrgency) {
-      case 'critical':
-        return 'badge-red';
-      case 'urgent':
-        return 'badge-yellow';
-      case 'soon':
-      case 'open':
-        return 'badge-green';
-      case 'closed':
-      default:
-        return 'badge bg-zinc-800 text-zinc-400';
+      case 'critical': return 'text-red-400 bg-red-400/10 border-red-400/20';
+      case 'urgent': return 'text-orange-400 bg-orange-400/10 border-orange-400/20';
+      case 'soon': return 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20';
+      case 'open': return 'text-green-400 bg-green-400/10 border-green-400/20';
+      default: return 'text-zinc-500 bg-zinc-800 border-zinc-700';
     }
   };
 
-  // Format CFP badge text
   const getCfpText = () => {
     if (!cfpIsOpen) return 'CFP Closed';
     if (cfpDaysRemaining === 0) return 'Closes Today';
@@ -57,7 +48,7 @@ export default function ConferenceCard({ conference, searchTerm }: ConferenceCar
     return `CFP Open`;
   };
 
-  // Get domain color
+  // Simplified domain colors (border only)
   const getDomainColor = (domain: string): string => {
     const colors: Record<string, string> = {
       ai: '#8B5CF6',
@@ -75,146 +66,100 @@ export default function ConferenceCard({ conference, searchTerm }: ConferenceCar
     return colors[domain] || '#6B7280';
   };
 
+  const domainColor = getDomainColor(conference.domain);
+
   return (
-    <article className="card group overflow-hidden">
-      {/* Domain indicator bar */}
+    <article
+      className="card group flex flex-col h-full relative overflow-hidden hover:shadow-lg transition-all duration-300"
+      style={{ borderColor: 'rgba(255,255,255,0.05)' }}
+    >
+      {/* Glow effect on hover based on domain */}
       <div
-        className="h-1"
-        style={{ backgroundColor: getDomainColor(conference.domain) }}
-        aria-hidden="true"
+        className="absolute inset-0 opacity-0 group-hover:opacity-5 transition-opacity duration-500 pointer-events-none"
+        style={{ background: `linear-gradient(to bottom right, ${domainColor}, transparent)` }}
       />
 
-      <div className="p-4 sm:p-5">
-        {/* Header with badges */}
-        <div className="flex flex-wrap items-center gap-2 mb-3">
-          {/* CFP Badge */}
-          {conference.cfp && (
+      <div className="p-5 flex flex-col h-full relative z-10">
+        {/* Top Row: Domain & CFP */}
+        <div className="flex items-center justify-between mb-3 text-xs font-medium">
+          <div className="flex items-center gap-2">
+            <span
+              className="w-2 h-2 rounded-full shadow-[0_0_8px_currentColor]"
+              style={{ color: domainColor, backgroundColor: domainColor }}
+            />
+            <span className="text-zinc-400 uppercase tracking-wider">{conference.domain}</span>
+          </div>
+
+          {conference.cfp ? (
             <a
               href={conference.cfp.url}
               target="_blank"
               rel="noopener noreferrer"
-              className={`badge ${getCfpBadgeStyle()} hover:opacity-80 transition-opacity cursor-pointer min-h-[2rem] flex items-center`}
-              title={cfpIsOpen ? `CFP closes ${conference.cfp.endDate}` : 'CFP is closed'}
+              className={`px-2 py-0.5 rounded border ${getCfpBadgeStyle()} transition-colors hover:bg-opacity-20`}
             >
               {getCfpText()}
             </a>
-          )}
-
-          {/* Financial Aid Badge */}
-          {conference.financialAid?.available && (
-            <span
-              className="badge badge-purple min-h-[2rem] flex items-center"
-              title={`Financial aid available: ${conference.financialAid.types.join(', ')}`}
-            >
-              Financial Aid
+          ) : (
+            <span className="text-zinc-600 px-2 py-0.5 border border-zinc-800 rounded bg-zinc-900/50">
+              No CFP
             </span>
-          )}
-
-          {/* Online/Hybrid Badge */}
-          {conference.hybrid && (
-            <span className="badge badge-blue min-h-[2rem] flex items-center">Hybrid</span>
-          )}
-          {conference.online && !conference.hybrid && (
-            <span className="badge badge-green min-h-[2rem] flex items-center">Online</span>
           )}
         </div>
 
-        {/* Conference Name */}
-        <h3 className="text-base sm:text-lg font-semibold text-white mb-2 line-clamp-2 group-hover:text-blue-400 transition-colors">
+        {/* Title */}
+        <h3 className="text-lg font-bold text-white mb-2 leading-tight group-hover:text-blue-400 transition-colors">
           <a
             href={conference.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:underline decoration-blue-400/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-black rounded"
-            dangerouslySetInnerHTML={{
-              __html: highlightText(conference.name)
-            }}
+            className="hover:underline decoration-blue-400/30 focus:outline-none"
+            dangerouslySetInnerHTML={{ __html: highlightText(conference.name) }}
           />
         </h3>
 
-        {/* Date and Location */}
-        <div className="space-y-2 mb-4">
-          <div className="flex items-center text-sm text-zinc-400">
-            <svg className="w-4 h-4 mr-2 flex-shrink-0 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
+        {/* Meta: Date & Location */}
+        <div className="flex flex-wrap items-center gap-y-1 gap-x-3 text-sm text-zinc-400 mb-4">
+          <div className="flex items-center gap-1.5">
+            <svg className="w-4 h-4 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
             <span>{formatDateRange(conference.startDate, conference.endDate)}</span>
           </div>
-
-          <div className="flex items-center text-sm text-zinc-400">
-            <svg className="w-4 h-4 mr-2 flex-shrink-0 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            <span
-              dangerouslySetInnerHTML={{
-                __html: highlightText(getLocationText(conference))
-              }}
-            />
+          <div className="flex items-center gap-1.5">
+            <svg className="w-4 h-4 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+            <span dangerouslySetInnerHTML={{ __html: highlightText(getLocationText(conference)) }} />
           </div>
         </div>
 
-        {/* Tags */}
-        {conference.tags && conference.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-4">
-            {conference.tags.slice(0, 4).map(tag => (
-              <span
-                key={tag}
-                className="px-2 py-0.5 rounded text-xs bg-zinc-800/50 text-zinc-400 border border-zinc-700/50"
-              >
+        {/* Bottom Section: Pushed down if needed, but keeps compact */}
+        <div className="mt-auto pt-3 flex items-end justify-between gap-4 border-t border-dashed border-zinc-800/50">
+          {/* Tags */}
+          <div className="flex flex-wrap gap-1.5 overflow-hidden max-h-[1.5rem] relative">
+            {conference.financialAid?.available && (
+              <span className="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold text-purple-300 bg-purple-500/10 border border-purple-500/20">
+                Fin Aid
+              </span>
+            )}
+            {conference.online && (
+              <span className="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold text-cyan-300 bg-cyan-500/10 border border-cyan-500/20">
+                Online
+              </span>
+            )}
+            {conference.tags?.slice(0, 3).map(tag => (
+              <span key={tag} className="px-1.5 py-0.5 rounded text-[10px] text-zinc-500 bg-zinc-900 border border-zinc-800">
                 {tag}
               </span>
             ))}
-            {conference.tags.length > 4 && (
-              <span className="px-2 py-0.5 rounded text-xs bg-zinc-800/50 text-zinc-500">
-                +{conference.tags.length - 4}
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Footer with links */}
-        <div className="flex items-center justify-between pt-4 border-t border-zinc-800">
-          {/* Domain indicator */}
-          <div className="flex items-center text-sm text-zinc-500">
-            <div
-              className="w-2 h-2 rounded-full mr-2"
-              style={{ backgroundColor: getDomainColor(conference.domain) }}
-              aria-hidden="true"
-            />
-            <span className="capitalize">{conference.domain}</span>
           </div>
 
-          {/* Action links */}
-          <div className="flex items-center gap-4">
-            {conference.twitter && (
-              <a
-                href={`https://twitter.com/${conference.twitter}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-zinc-500 hover:text-blue-400 transition-colors p-1 min-w-[2.75rem] min-h-[2.75rem] flex items-center justify-center"
-                title={`@${conference.twitter}`}
-                aria-label={`Twitter @${conference.twitter}`}
-              >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                </svg>
-              </a>
-            )}
-
-            <a
-              href={conference.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-blue-400 hover:text-blue-300 font-medium transition-colors flex items-center gap-1 min-h-[2.75rem] px-2"
-              aria-label={`Visit ${conference.name} website`}
-            >
-              Visit
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-              </svg>
-            </a>
-          </div>
+          {/* Visit Link - Arrow Style */}
+          <a
+            href={conference.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 text-sm font-medium text-white hover:text-blue-400 transition-colors whitespace-nowrap pl-2"
+          >
+            Visit
+            <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+          </a>
         </div>
       </div>
     </article>
