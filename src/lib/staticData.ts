@@ -1,5 +1,5 @@
 /**
- * Static Data Loader for Confab v3.0
+ * Static Data Loader for ConfScout v3.0
  *
  * Loads conference data from static JSON file at build time.
  * Provides utilities for filtering, sorting, and searching conferences.

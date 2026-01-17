@@ -1,6 +1,6 @@
-# Contributing to Confab
+# Contributing to ConfScout
 
-Thank you for your interest in contributing to Confab. This project relies on community contributions to keep conference data accurate and the platform improving.
+Thank you for your interest in contributing to ConfScout. This project relies on community contributions to keep conference data accurate and the platform improving.
 
 ## Reporting Issues
 
@@ -18,7 +18,7 @@ The easiest way to contribute is by adding missing conferences.
 
 ## Development Setup
 
-To run Confab locally:
+To run ConfScout locally:
 
 1.  **Clone the repository**
     ```bash

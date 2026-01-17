@@ -1,10 +1,10 @@
-# Confab
+# ConfScout
 
 A modern, open-source directory for technical conferences.
 
 ## Overview
 
-Confab helps developers discover conferences, track Call for Papers (CFP) deadlines, and find speaking opportunities. It aggregates data from multiple sources to provide a comprehensive and up-to-date view of the global tech conference landscape.
+ConfScout helps developers discover conferences, track Call for Papers (CFP) deadlines, and find speaking opportunities. It aggregates data from multiple sources to provide a comprehensive and up-to-date view of the global tech conference landscape.
 
 ## Features
 

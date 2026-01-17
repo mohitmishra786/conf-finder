@@ -1,5 +1,5 @@
 /**
- * Conference and Domain types for Confab v3.0
+ * Conference and Domain types for ConfScout v3.0
  *
  * Enhanced schema with month grouping, CFP focus, geocoding, and domain classification
  */

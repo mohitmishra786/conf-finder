@@ -1,5 +1,5 @@
 """
-Confab Conference Aggregator - Main Orchestrator
+ConfScout Conference Aggregator - Main Orchestrator
 
 Fetches conferences from all sources, deduplicates, classifies, 
 geocodes, and outputs to conferences.json grouped by month.
@@ -35,7 +35,7 @@ PREVIOUS_DATA_PATH = OUTPUT_PATH
 
 def main():
     print("=" * 60)
-    print("Confab Conference Aggregator")
+    print("ConfScout Conference Aggregator")
     print("=" * 60)
     
     # 1. Fetch from all sources
@@ -238,22 +238,29 @@ def _send_notifications(conferences: list[dict]):
             pass
     
     # Find new CFPs
-    new_cfps = [
-        c for c in conferences
-        if c.get("id") not in previous_ids
-        and c.get("cfp", {}).get("status") == "open"
-    ]
+    new_cfps = []
+    for c in conferences:
+        if c.get("id") in previous_ids:
+            continue
+        
+        cfp = c.get("cfp")
+        if cfp and cfp.get("status") == "open":
+            new_cfps.append(c)
     
     if new_cfps:
         print(f"  Found {len(new_cfps)} new CFPs")
         send_new_cfps(new_cfps)
     
     # Find CFPs closing within 7 days
-    closing_soon = [
-        c for c in conferences
-        if c.get("cfp", {}).get("status") == "open"
-        and 0 < (c.get("cfp", {}).get("daysRemaining") or 999) <= 7
-    ]
+    closing_soon = []
+    for c in conferences:
+        cfp = c.get("cfp")
+        if not cfp:
+            continue
+        if cfp.get("status") == "open":
+            days = cfp.get("daysRemaining")
+            if days is not None and 0 < days <= 7:
+                closing_soon.append(c)
     
     if closing_soon:
         print(f"  Found {len(closing_soon)} CFPs closing soon")

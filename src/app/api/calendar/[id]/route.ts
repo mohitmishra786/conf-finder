@@ -83,11 +83,11 @@ function generateICS(conference: {
 
     return `BEGIN:VCALENDAR
 VERSION:2.0
-PRODID:-//Confab//Conference Calendar//EN
+PRODID:-//ConfScout//Conference Calendar//EN
 CALSCALE:GREGORIAN
 METHOD:PUBLISH
 BEGIN:VEVENT
-UID:${conference.id}@confab.dev
+UID:${conference.id}@confscout.site
 DTSTAMP:${dtstamp}
 DTSTART;VALUE=DATE:${dtstart}
 DTEND;VALUE=DATE:${dtend}

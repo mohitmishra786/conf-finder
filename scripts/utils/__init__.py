@@ -1,3 +1,3 @@
 """
-Confab Conference Aggregator - Utility Modules
+ConfScout Conference Aggregator - Utility Modules
 """

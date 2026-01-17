@@ -1,4 +1,4 @@
-# Confab - Conference Data Sync
+# ConfScout - Conference Data Sync
 # 
 # Runs daily to fetch fresh conference data from all sources
 # and update the public/data/conferences.json file.

@@ -1,5 +1,5 @@
 /**
- * Conference utilities for Confab v3.0
+ * Conference utilities for ConfScout v3.0
  *
  * Provides formatting and helper functions for conferences.
  */

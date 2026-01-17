@@ -105,7 +105,7 @@ def _fetch_category(category: str, domain: str) -> List[Dict]:
         
         try:
             response = requests.get(url, timeout=15, headers={
-                "User-Agent": "Mozilla/5.0 (compatible; ConfabBot/1.0)"
+                "User-Agent": "Mozilla/5.0 (compatible; ConfScoutBot/1.0)"
             })
             if response.status_code == 404:
                 break

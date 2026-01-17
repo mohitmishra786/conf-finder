@@ -1,4 +1,4 @@
-# Confab Conference Aggregator - Python Dependencies
+# ConfScout Conference Aggregator - Python Dependencies
 # 
 # Required for GitHub Actions workflow and local development
 # Install with: pip install -r requirements.txt

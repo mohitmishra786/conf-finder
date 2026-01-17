@@ -1,5 +1,5 @@
 /**
- * Search utilities for Confab v3.0
+ * Search utilities for ConfScout v3.0
  *
  * Provides fuzzy search functionality using Fuse.js
  */

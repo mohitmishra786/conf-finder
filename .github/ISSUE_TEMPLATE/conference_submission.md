@@ -1,6 +1,6 @@
 ---
 name: Conference Submission
-about: Submit a new conference to be added to Confab
+about: Submit a new conference to be added to ConfScout
 title: "[CONF] Conference Name 2026"
 labels: conference-submission
 assignees: ''

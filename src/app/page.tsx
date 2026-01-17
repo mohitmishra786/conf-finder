@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Confab Homepage
+ * ConfScout Homepage
  * 
  * Features:
  * - World map visualization of conferences
