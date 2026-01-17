@@ -47,7 +47,7 @@ Confab helps developers discover conferences, track Call for Papers (CFP) deadli
 
 ## Contributing
 
-Contributions are welcome. Please read the contribution guidelines for details on how to add new data sources or features.
+Contributions are welcome. Please read the [contribution guidelines](CONTRIBUTING.md) for details on how to add new data sources or features.
 
 ## License
 
