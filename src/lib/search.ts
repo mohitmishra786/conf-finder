@@ -1,19 +1,23 @@
 /**
- * Search utilities for conf-finder v2.0
+ * Search utilities for Confab v3.0
  *
  * Provides fuzzy search functionality using Fuse.js
  */
 
 import Fuse from 'fuse.js';
-import { Conference, SearchResult, Domain } from '@/types/conference';
+import { Conference, Domain } from '@/types/conference';
+
+// Define SearchResult locally since it's not exported from types
+interface SearchResult {
+  domain: Domain;
+  conferences: Conference[];
+}
 
 // Fuse.js configuration for fuzzy search
 const fuseOptions = {
   keys: [
     { name: 'name', weight: 2 },
-    { name: 'description', weight: 1 },
-    { name: 'city', weight: 1.5 },
-    { name: 'country', weight: 1.5 },
+    { name: 'location.raw', weight: 1.5 },
     { name: 'tags', weight: 1 }
   ],
   threshold: 0.3,

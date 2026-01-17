@@ -1,96 +1,118 @@
 /**
- * Conference and Domain types for conf-finder v2.0
+ * Conference and Domain types for Confab v3.0
  *
- * Enhanced schema with CFP focus and financial aid detection
+ * Enhanced schema with month grouping, CFP focus, geocoding, and domain classification
  */
 
+// Location with coordinates for world map
+export interface ConferenceLocation {
+  city: string;
+  country: string;
+  raw: string;
+  lat?: number;
+  lng?: number;
+}
+
+// Call for Proposals status
+export interface CFPInfo {
+  url: string;
+  endDate: string | null;
+  daysRemaining?: number;
+  status?: 'open' | 'closed';
+}
+
+// Financial Aid info
+export interface FinancialAidInfo {
+  available: boolean;
+  types?: string[];
+  url?: string;
+  notes?: string;
+}
+
+// Main conference type
 export interface Conference {
-  // Core identification
+  // Core identification  
   id: string;
   name: string;
   url: string;
 
   // Dates (ISO 8601 format: YYYY-MM-DD)
-  startDate: string;
-  endDate: string;
+  startDate: string | null;
+  endDate: string | null;
 
-  // Location
-  city: string;
-  country: string;
-  continent: string;
+  // Location with geocoding
+  location: ConferenceLocation;
   online: boolean;
-  hybrid: boolean;
 
-  // Call for Proposals (CFP) - KEY FEATURE
-  cfp: {
-    url: string;
-    endDate: string;
-    daysRemaining: number;
-    isOpen: boolean;
-  } | null;
+  // Call for Proposals (CFP)
+  cfp: CFPInfo | null;
 
-  // Financial Aid - KEY FEATURE
-  financialAid: {
-    available: boolean;
-    types: string[];
-    url: string | null;
-    notes: string | null;
-  };
+  // Financial Aid
+  financialAid?: FinancialAidInfo;
 
-  // Categorization
+  // Domain classification
   domain: string;
-  tags: string[];
+  subDomains?: string[];
+  tags?: string[];
 
   // Metadata
-  description: string | null;
-  twitter: string | null;
-  mastodon: string | null;
-  cocUrl: string | null;
+  description?: string;
+  twitter?: string;
 
   // Source tracking
-  source: 'confs.tech' | 'sessionize' | 'manual';
-  lastUpdated: string;
+  source: string;
+  sources?: string[]; // When merged from multiple sources
 }
 
+// Month-grouped conference data structure (matches JSON output)
+export interface ConferenceData {
+  lastUpdated: string;
+  stats: ConferenceStats;
+  months: Record<string, Conference[]>;
+}
+
+export interface ConferenceStats {
+  total: number;
+  withOpenCFP: number;
+  withLocation: number;
+  byDomain: Record<string, number>;
+}
+
+// Domain metadata for UI
 export interface Domain {
   slug: string;
   name: string;
   description: string;
   icon: string;
   color: string;
-  conferenceCount: number;
+  count: number;
 }
 
-export interface ConferenceStats {
-  totalConferences: number;
-  openCfps: number;
-  withFinancialAid: number;
-  byContinent: Record<string, number>;
-}
-
-export interface ConferenceData {
-  lastUpdated: string;
-  source: string;
-  version: string;
-  stats: ConferenceStats;
-  domains: Domain[];
-  conferences: Conference[];
-}
-
-export interface SearchResult {
-  domain: Domain;
-  conferences: Conference[];
-}
-
-// Filter options for the UI
+// UI Filter options  
 export interface ConferenceFilters {
   domain?: string;
   cfpOpen?: boolean;
   hasFinancialAid?: boolean;
   searchTerm?: string;
-  continent?: string;
+  country?: string;
   online?: boolean;
+  entryFee?: 'free' | 'paid' | 'all';
 }
 
 // Sort options
 export type SortOption = 'cfpDeadline' | 'startDate' | 'name';
+
+// Domain metadata mapping
+export const DOMAIN_INFO: Record<string, { name: string; icon: string; color: string }> = {
+  ai: { name: 'AI / Machine Learning', icon: '🤖', color: '#8B5CF6' },
+  software: { name: 'Software Engineering', icon: '⚙️', color: '#3B82F6' },
+  security: { name: 'Security', icon: '🔒', color: '#EF4444' },
+  web: { name: 'Web Development', icon: '🌐', color: '#10B981' },
+  mobile: { name: 'Mobile', icon: '📱', color: '#F59E0B' },
+  cloud: { name: 'Cloud / Infrastructure', icon: '☁️', color: '#06B6D4' },
+  data: { name: 'Data / Databases', icon: '📊', color: '#EC4899' },
+  devops: { name: 'DevOps / SRE', icon: '🔄', color: '#8B5CF6' },
+  opensource: { name: 'Open Source', icon: '🔓', color: '#22C55E' },
+  academic: { name: 'Academic / Research', icon: '🎓', color: '#6366F1' },
+  general: { name: 'General', icon: '🎯', color: '#6B7280' },
+};

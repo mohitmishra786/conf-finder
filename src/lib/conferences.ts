@@ -1,8 +1,7 @@
 /**
- * Conference utilities for conf-finder v2.0
+ * Conference utilities for Confab v3.0
  *
  * Provides formatting and helper functions for conferences.
- * Data loading is now handled by staticData.ts
  */
 
 import { Conference } from '@/types/conference';
@@ -10,7 +9,8 @@ import { Conference } from '@/types/conference';
 /**
  * Format a single date for display
  */
-export function formatDate(dateString: string): string {
+export function formatDate(dateString: string | null): string {
+  if (!dateString) return 'TBD';
   try {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
@@ -26,7 +26,10 @@ export function formatDate(dateString: string): string {
 /**
  * Format date range for display
  */
-export function formatDateRange(startDate: string, endDate: string): string {
+export function formatDateRange(startDate: string | null, endDate: string | null): string {
+  if (!startDate) return 'TBD';
+  if (!endDate) return formatDate(startDate);
+
   try {
     const start = new Date(startDate);
     const end = new Date(endDate);
@@ -58,28 +61,26 @@ export function formatDateRange(startDate: string, endDate: string): string {
  * Get location text for display
  */
 export function getLocationText(conference: Conference): string {
-  if (conference.hybrid) {
-    if (conference.city && conference.country) {
-      return `${conference.city}, ${conference.country} (Hybrid)`;
+  // Use the new location.raw field
+  if (conference.location?.raw) {
+    if (conference.online) {
+      return `${conference.location.raw} (Hybrid)`;
     }
-    return 'Hybrid';
+    return conference.location.raw;
   }
 
   if (conference.online) {
     return 'Online';
   }
 
-  if (conference.city && conference.country) {
-    return `${conference.city}, ${conference.country}`;
-  }
-
-  return conference.city || conference.country || 'Location TBD';
+  return 'Location TBD';
 }
 
 /**
  * Get days until conference starts
  */
-export function getDaysUntilConference(startDate: string): number {
+export function getDaysUntilConference(startDate: string | null): number {
+  if (!startDate) return -1;
   const start = new Date(startDate);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -92,30 +93,10 @@ export function getDaysUntilConference(startDate: string): number {
 /**
  * Check if conference is happening soon (within 30 days)
  */
-export function isHappeningSoon(startDate: string): boolean {
+export function isHappeningSoon(startDate: string | null): boolean {
+  if (!startDate) return false;
   const days = getDaysUntilConference(startDate);
   return days >= 0 && days <= 30;
-}
-
-/**
- * Get domain emoji icon
- */
-export function getDomainIcon(domain: string): string {
-  const icons: Record<string, string> = {
-    ai: '🤖',
-    web: '🌐',
-    mobile: '📱',
-    devops: '☁️',
-    security: '🔒',
-    data: '📊',
-    gaming: '🎮',
-    blockchain: '⛓️',
-    ux: '🎨',
-    opensource: '💚',
-    general: '💻'
-  };
-
-  return icons[domain] || '📌';
 }
 
 /**
@@ -129,10 +110,10 @@ export function getDomainColor(domain: string): string {
     devops: '#F59E0B',
     security: '#EF4444',
     data: '#06B6D4',
-    gaming: '#EC4899',
-    blockchain: '#6366F1',
-    ux: '#F472B6',
+    cloud: '#06B6D4',
+    software: '#3B82F6',
     opensource: '#22C55E',
+    academic: '#6366F1',
     general: '#6B7280'
   };
 

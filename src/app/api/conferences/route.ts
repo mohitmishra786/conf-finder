@@ -1,29 +1,51 @@
 import { NextResponse } from 'next/server';
 import conferenceData from '../../../../public/data/conferences.json';
 
+/**
+ * GET /api/conferences
+ * 
+ * Returns conference data in the new month-grouped format.
+ * Query params:
+ * - domain: Filter by domain (ai, web, software, etc.)
+ * - cfpOpen: Only show conferences with open CFPs
+ */
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const domain = searchParams.get('domain');
     const cfpOnly = searchParams.get('cfpOpen') === 'true';
-    const financialAidOnly = searchParams.get('financialAid') === 'true';
 
     // Type assertion for the imported data
-    const data = conferenceData as {
-      conferences: Array<{
-        domain: string;
-        cfp?: { isOpen: boolean } | null;
-        financialAid?: { available: boolean };
-        [key: string]: unknown;
-      }>;
-      domains: Array<{ slug: string;[key: string]: unknown }>;
-      stats: { [key: string]: unknown };
-      lastUpdated: string | null;
+    type ConferenceEntry = {
+      id: string;
+      name: string;
+      url: string;
+      startDate: string | null;
+      domain: string;
+      location?: { raw?: string; lat?: number; lng?: number };
+      cfp?: { status?: string; url?: string; endDate?: string | null; daysRemaining?: number } | null;
+      tags?: string[];
       source: string;
-      version: string;
+      online?: boolean;
+      [key: string]: unknown;
     };
 
-    let conferences = [...data.conferences];
+    const data = conferenceData as {
+      lastUpdated: string;
+      stats: {
+        total: number;
+        withOpenCFP: number;
+        withLocation: number;
+        byDomain: Record<string, number>;
+      };
+      months: Record<string, ConferenceEntry[]>;
+    };
+
+    // Flatten months into a single array for filtering
+    let conferences: ConferenceEntry[] = [];
+    for (const monthConfs of Object.values(data.months)) {
+      conferences.push(...monthConfs);
+    }
 
     // Filter by domain
     if (domain && domain !== 'all') {
@@ -32,21 +54,28 @@ export async function GET(request: Request) {
 
     // Filter by CFP status
     if (cfpOnly) {
-      conferences = conferences.filter(c => c.cfp?.isOpen);
+      conferences = conferences.filter(c => c.cfp?.status === 'open');
     }
 
-    // Filter by financial aid
-    if (financialAidOnly) {
-      conferences = conferences.filter(c => c.financialAid?.available);
+    // Re-group by month
+    const months: Record<string, ConferenceEntry[]> = {};
+    for (const conf of conferences) {
+      const monthKey = conf.startDate
+        ? new Date(conf.startDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+        : 'TBD';
+      if (!months[monthKey]) months[monthKey] = [];
+      months[monthKey].push(conf);
     }
 
     return NextResponse.json({
       lastUpdated: data.lastUpdated,
-      source: data.source,
-      version: data.version,
-      stats: data.stats,
-      domains: data.domains,
-      conferences,
+      stats: {
+        total: conferences.length,
+        withOpenCFP: conferences.filter(c => c.cfp?.status === 'open').length,
+        withLocation: conferences.filter(c => c.location?.lat).length,
+        byDomain: data.stats.byDomain,
+      },
+      months,
     });
   } catch (error) {
     console.error('Error fetching conferences:', error);

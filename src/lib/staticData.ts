@@ -1,5 +1,5 @@
 /**
- * Static Data Loader for conf-finder v2.0
+ * Static Data Loader for Confab v3.0
  *
  * Loads conference data from static JSON file at build time.
  * Provides utilities for filtering, sorting, and searching conferences.
@@ -9,7 +9,6 @@ import {
     Conference,
     ConferenceData,
     ConferenceFilters,
-    Domain,
     SortOption
 } from '@/types/conference';
 
@@ -20,47 +19,28 @@ import rawData from '../../public/data/conferences.json';
 const conferenceData = rawData as ConferenceData;
 
 /**
- * Get all conference data including stats and domains
+ * Get all conference data including stats and months
  */
 export function getConferenceData(): ConferenceData {
     return conferenceData;
 }
 
 /**
- * Get all conferences
+ * Get all conferences (flattened from months)
  */
 export function getAllConferences(): Conference[] {
-    return conferenceData.conferences;
-}
-
-/**
- * Get all domains
- */
-export function getAllDomains(): Domain[] {
-    return conferenceData.domains;
-}
-
-/**
- * Get conferences grouped by domain
- */
-export function getConferencesByDomain(): Map<string, Conference[]> {
-    const grouped = new Map<string, Conference[]>();
-
-    for (const conf of conferenceData.conferences) {
-        const domain = conf.domain;
-        if (!grouped.has(domain)) {
-            grouped.set(domain, []);
-        }
-        grouped.get(domain)!.push(conf);
+    const confs: Conference[] = [];
+    for (const monthConfs of Object.values(conferenceData.months)) {
+        confs.push(...(monthConfs as Conference[]));
     }
-
-    return grouped;
+    return confs;
 }
 
 /**
  * Calculate CFP days remaining (recalculates based on current date)
  */
-export function calculateCfpDaysRemaining(cfpEndDate: string): number {
+export function calculateCfpDaysRemaining(cfpEndDate: string | null): number {
+    if (!cfpEndDate) return -1;
     const deadline = new Date(cfpEndDate);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -75,7 +55,8 @@ export function calculateCfpDaysRemaining(cfpEndDate: string): number {
 /**
  * Check if CFP is still open (recalculates based on current date)
  */
-export function isCfpOpen(cfpEndDate: string): boolean {
+export function isCfpOpen(cfpEndDate: string | null): boolean {
+    if (!cfpEndDate) return false;
     return calculateCfpDaysRemaining(cfpEndDate) > 0;
 }
 
@@ -138,17 +119,12 @@ export function filterConferences(
 
     // Filter by CFP open
     if (filters.cfpOpen) {
-        filtered = filtered.filter(c => c.cfp && isCfpOpen(c.cfp.endDate));
+        filtered = filtered.filter(c => c.cfp?.status === 'open');
     }
 
     // Filter by financial aid
     if (filters.hasFinancialAid) {
         filtered = filtered.filter(c => c.financialAid?.available);
-    }
-
-    // Filter by continent
-    if (filters.continent && filters.continent !== 'all') {
-        filtered = filtered.filter(c => c.continent === filters.continent);
     }
 
     // Filter by online
@@ -161,10 +137,8 @@ export function filterConferences(
         const term = filters.searchTerm.toLowerCase().trim();
         filtered = filtered.filter(c =>
             c.name.toLowerCase().includes(term) ||
-            c.city.toLowerCase().includes(term) ||
-            c.country.toLowerCase().includes(term) ||
-            c.description?.toLowerCase().includes(term) ||
-            c.tags.some(tag => tag.toLowerCase().includes(term))
+            c.location?.raw?.toLowerCase().includes(term) ||
+            c.tags?.some(tag => tag.toLowerCase().includes(term))
         );
     }
 
@@ -184,9 +158,9 @@ export function sortConferences(
         case 'cfpDeadline':
             // Sort by CFP deadline (soonest first), conferences without CFP at end
             return sorted.sort((a, b) => {
-                if (!a.cfp && !b.cfp) return 0;
-                if (!a.cfp) return 1;
-                if (!b.cfp) return -1;
+                if (!a.cfp?.endDate && !b.cfp?.endDate) return 0;
+                if (!a.cfp?.endDate) return 1;
+                if (!b.cfp?.endDate) return -1;
                 return a.cfp.endDate.localeCompare(b.cfp.endDate);
             });
 
@@ -195,29 +169,16 @@ export function sortConferences(
 
         case 'startDate':
         default:
-            return sorted.sort((a, b) => a.startDate.localeCompare(b.startDate));
+            return sorted.sort((a, b) => (a.startDate || '9999').localeCompare(b.startDate || '9999'));
     }
-}
-
-/**
- * Get unique continents from conferences
- */
-export function getUniqueContinents(): string[] {
-    const continents = new Set<string>();
-    for (const conf of conferenceData.conferences) {
-        if (conf.continent) {
-            continents.add(conf.continent);
-        }
-    }
-    return Array.from(continents).sort();
 }
 
 /**
  * Format date for display
  */
-export function formatConferenceDate(startDate: string, endDate: string): string {
+export function formatConferenceDate(startDate: string | null, endDate: string | null): string {
+    if (!startDate) return 'TBD';
     const start = new Date(startDate);
-    const end = new Date(endDate);
 
     const options: Intl.DateTimeFormatOptions = {
         month: 'short',
@@ -226,9 +187,11 @@ export function formatConferenceDate(startDate: string, endDate: string): string
 
     const startStr = start.toLocaleDateString('en-US', options);
 
-    if (startDate === endDate) {
+    if (!endDate || startDate === endDate) {
         return `${startStr}, ${start.getFullYear()}`;
     }
+
+    const end = new Date(endDate);
 
     // Same month
     if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
@@ -237,11 +200,4 @@ export function formatConferenceDate(startDate: string, endDate: string): string
 
     const endStr = end.toLocaleDateString('en-US', options);
     return `${startStr} - ${endStr}, ${end.getFullYear()}`;
-}
-
-/**
- * Get domain by slug
- */
-export function getDomainBySlug(slug: string): Domain | undefined {
-    return conferenceData.domains.find(d => d.slug === slug);
 }

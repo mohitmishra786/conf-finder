@@ -1,12 +1,12 @@
 'use client';
 
-import { Conference } from '@/types/conference';
-import { formatDateRange, getLocationText } from '@/lib/conferences';
-import {
-  calculateCfpDaysRemaining,
-  isCfpOpen,
-  getCfpUrgency,
-} from '@/lib/staticData';
+/**
+ * ConferenceCard Component
+ * 
+ * Displays a single conference with CFP status, domain badge, location, and tags.
+ */
+
+import { Conference, DOMAIN_INFO } from '@/types/conference';
 
 interface ConferenceCardProps {
   conference: Conference;
@@ -14,12 +14,12 @@ interface ConferenceCardProps {
 }
 
 export default function ConferenceCard({ conference, searchTerm }: ConferenceCardProps) {
-  const cfpDaysRemaining = conference.cfp
-    ? calculateCfpDaysRemaining(conference.cfp.endDate)
-    : -1;
-  const cfpIsOpen = conference.cfp ? isCfpOpen(conference.cfp.endDate) : false;
-  const cfpUrgency = getCfpUrgency(cfpDaysRemaining);
+  // CFP status
+  const cfp = conference.cfp;
+  const cfpIsOpen = cfp?.status === 'open';
+  const daysRemaining = cfp?.daysRemaining ?? -1;
 
+  // Highlight search term in text
   const highlightText = (text: string): string => {
     if (!searchTerm || !text) return text;
     try {
@@ -30,50 +30,55 @@ export default function ConferenceCard({ conference, searchTerm }: ConferenceCar
     }
   };
 
+  // CFP badge styling based on urgency
   const getCfpBadgeStyle = () => {
-    switch (cfpUrgency) {
-      case 'critical': return 'text-red-400 bg-red-400/10 border-red-400/20';
-      case 'urgent': return 'text-orange-400 bg-orange-400/10 border-orange-400/20';
-      case 'soon': return 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20';
-      case 'open': return 'text-green-400 bg-green-400/10 border-green-400/20';
-      default: return 'text-zinc-500 bg-zinc-800 border-zinc-700';
-    }
+    if (!cfpIsOpen) return 'text-zinc-500 bg-zinc-800 border-zinc-700';
+    if (daysRemaining <= 3) return 'text-red-400 bg-red-400/10 border-red-400/20';
+    if (daysRemaining <= 7) return 'text-orange-400 bg-orange-400/10 border-orange-400/20';
+    if (daysRemaining <= 14) return 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20';
+    return 'text-green-400 bg-green-400/10 border-green-400/20';
   };
 
   const getCfpText = () => {
     if (!cfpIsOpen) return 'CFP Closed';
-    if (cfpDaysRemaining === 0) return 'Closes Today';
-    if (cfpDaysRemaining === 1) return '1 Day Left';
-    if (cfpDaysRemaining <= 7) return `${cfpDaysRemaining} Days Left`;
-    return `CFP Open`;
+    if (daysRemaining === 0) return 'Closes Today';
+    if (daysRemaining === 1) return '1 Day Left';
+    if (daysRemaining <= 7) return `${daysRemaining} Days Left`;
+    return 'CFP Open';
   };
 
-  // Simplified domain colors (border only)
-  const getDomainColor = (domain: string): string => {
-    const colors: Record<string, string> = {
-      ai: '#8B5CF6',
-      web: '#3B82F6',
-      mobile: '#10B981',
-      devops: '#F59E0B',
-      security: '#EF4444',
-      data: '#06B6D4',
-      gaming: '#EC4899',
-      blockchain: '#6366F1',
-      ux: '#F472B6',
-      opensource: '#22C55E',
-      general: '#6B7280'
-    };
-    return colors[domain] || '#6B7280';
+  // Domain color
+  const domainInfo = DOMAIN_INFO[conference.domain] || DOMAIN_INFO.general;
+  const domainColor = domainInfo.color;
+
+  // Format date range
+  const formatDate = (start: string | null, end: string | null) => {
+    if (!start) return 'TBD';
+    const s = new Date(start);
+    const e = end ? new Date(end) : null;
+
+    const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
+    const startStr = s.toLocaleDateString('en-US', options);
+
+    if (!e || s.getTime() === e.getTime()) return startStr;
+
+    // Same month
+    if (s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear()) {
+      return `${startStr}-${e.getDate()}`;
+    }
+
+    return `${startStr} - ${e.toLocaleDateString('en-US', options)}`;
   };
 
-  const domainColor = getDomainColor(conference.domain);
+  // Location text
+  const locationText = conference.location?.raw || (conference.online ? 'Online' : 'TBD');
 
   return (
     <article
       className="card group flex flex-col h-full relative overflow-hidden hover:shadow-lg transition-all duration-300"
       style={{ borderColor: 'rgba(255,255,255,0.05)' }}
     >
-      {/* Glow effect on hover based on domain */}
+      {/* Glow effect on hover */}
       <div
         className="absolute inset-0 opacity-0 group-hover:opacity-5 transition-opacity duration-500 pointer-events-none"
         style={{ background: `linear-gradient(to bottom right, ${domainColor}, transparent)` }}
@@ -90,9 +95,9 @@ export default function ConferenceCard({ conference, searchTerm }: ConferenceCar
             <span className="text-zinc-400 uppercase tracking-wider">{conference.domain}</span>
           </div>
 
-          {conference.cfp ? (
+          {cfp?.url ? (
             <a
-              href={conference.cfp.url}
+              href={cfp.url}
               target="_blank"
               rel="noopener noreferrer"
               className={`px-2 py-0.5 rounded border ${getCfpBadgeStyle()} transition-colors hover:bg-opacity-20`}
@@ -120,19 +125,24 @@ export default function ConferenceCard({ conference, searchTerm }: ConferenceCar
         {/* Meta: Date & Location */}
         <div className="flex flex-wrap items-center gap-y-1 gap-x-3 text-sm text-zinc-400 mb-4">
           <div className="flex items-center gap-1.5">
-            <svg className="w-4 h-4 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-            <span>{formatDateRange(conference.startDate, conference.endDate)}</span>
+            <svg className="w-4 h-4 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <span>{formatDate(conference.startDate, conference.endDate)}</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <svg className="w-4 h-4 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-            <span dangerouslySetInnerHTML={{ __html: highlightText(getLocationText(conference)) }} />
+            <svg className="w-4 h-4 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span dangerouslySetInnerHTML={{ __html: highlightText(locationText) }} />
           </div>
         </div>
 
-        {/* Bottom Section: Pushed down if needed, but keeps compact */}
+        {/* Bottom Section */}
         <div className="mt-auto pt-3 flex items-end justify-between gap-4 border-t border-dashed border-zinc-800/50">
           {/* Tags */}
-          <div className="flex flex-wrap gap-1.5 overflow-hidden max-h-[1.5rem] relative">
+          <div className="flex flex-wrap gap-1.5 overflow-hidden max-h-[1.5rem]">
             {conference.financialAid?.available && (
               <span className="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold text-purple-300 bg-purple-500/10 border border-purple-500/20">
                 Fin Aid
@@ -143,14 +153,14 @@ export default function ConferenceCard({ conference, searchTerm }: ConferenceCar
                 Online
               </span>
             )}
-            {conference.tags?.slice(0, 3).map(tag => (
+            {conference.tags?.slice(0, 2).map(tag => (
               <span key={tag} className="px-1.5 py-0.5 rounded text-[10px] text-zinc-500 bg-zinc-900 border border-zinc-800">
                 {tag}
               </span>
             ))}
           </div>
 
-          {/* Visit Link - Arrow Style */}
+          {/* Visit Link */}
           <a
             href={conference.url}
             target="_blank"
@@ -158,7 +168,9 @@ export default function ConferenceCard({ conference, searchTerm }: ConferenceCar
             className="flex items-center gap-1 text-sm font-medium text-white hover:text-blue-400 transition-colors whitespace-nowrap pl-2"
           >
             Visit
-            <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+            <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+            </svg>
           </a>
         </div>
       </div>

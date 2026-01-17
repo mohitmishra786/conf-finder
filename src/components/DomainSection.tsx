@@ -28,10 +28,8 @@ export default function DomainSection({
       const term = searchTerm.toLowerCase();
       return (
         conference.name.toLowerCase().includes(term) ||
-        conference.city.toLowerCase().includes(term) ||
-        conference.country.toLowerCase().includes(term) ||
-        conference.description?.toLowerCase().includes(term) ||
-        conference.tags.some(tag => tag.toLowerCase().includes(term))
+        conference.location?.raw?.toLowerCase().includes(term) ||
+        conference.tags?.some(tag => tag.toLowerCase().includes(term))
       );
     })
     : conferences;
@@ -91,9 +89,9 @@ export default function DomainSection({
       {isExpanded && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {displayedConferences.map(conference => (
+            {displayedConferences.map((conference, idx) => (
               <ConferenceCard
-                key={conference.id}
+                key={`${conference.id}-${idx}`}
                 conference={conference}
                 searchTerm={searchTerm}
               />
