@@ -160,18 +160,33 @@ export default function ConferenceCard({ conference, searchTerm }: ConferenceCar
             ))}
           </div>
 
-          {/* Visit Link */}
-          <a
-            href={conference.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 text-sm font-medium text-white hover:text-blue-400 transition-colors whitespace-nowrap pl-2"
-          >
-            Visit
-            <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-            </svg>
-          </a>
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2 whitespace-nowrap">
+            {/* Calendar Button */}
+            {conference.startDate && (
+              <a
+                href={`/api/calendar/${conference.id}`}
+                title="Add to Calendar"
+                className="p-1.5 text-zinc-500 hover:text-green-400 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </a>
+            )}
+            {/* Visit Link */}
+            <a
+              href={conference.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-sm font-medium text-white hover:text-blue-400 transition-colors pl-2"
+            >
+              Visit
+              <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              </svg>
+            </a>
+          </div>
         </div>
       </div>
     </article>

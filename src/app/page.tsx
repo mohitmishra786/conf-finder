@@ -170,6 +170,7 @@ export default function Home() {
           </h1>
           <p className="text-zinc-400 text-base sm:text-lg max-w-2xl mx-auto">
             {data?.stats.total.toLocaleString()} conferences from {domains.length} domains.
+            <br />
             {data?.stats.withOpenCFP} open CFPs waiting for speakers.
           </p>
         </section>

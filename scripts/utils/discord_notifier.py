@@ -5,7 +5,6 @@ Send webhook messages to Discord for new CFPs.
 """
 
 import os
-import json
 import requests
 from datetime import datetime
 from typing import Optional
@@ -48,26 +47,26 @@ def send_new_cfps(cfps: list[dict]) -> bool:
         urgency = _get_urgency_color(days_left)
         
         embed = {
-            "title": f"📢 {name}",
+            "title": name,
             "url": cfp_url,
             "color": urgency,
             "fields": [
-                {"name": "📍 Location", "value": location or "TBD", "inline": True},
-                {"name": "🏷️ Domain", "value": domain.upper(), "inline": True},
+                {"name": "Location", "value": location or "TBD", "inline": True},
+                {"name": "Domain", "value": domain.upper(), "inline": True},
             ],
         }
         
         if cfp_end:
             days_text = f"{days_left} days left" if days_left and days_left > 0 else "Deadline passed"
             embed["fields"].append({
-                "name": "📅 CFP Deadline",
+                "name": "CFP Deadline",
                 "value": f"{cfp_end} ({days_text})",
                 "inline": False,
             })
         
         if cfp_url and cfp_url != url:
             embed["fields"].append({
-                "name": "🔗 Apply",
+                "name": "Apply",
                 "value": f"[Submit Talk]({cfp_url})",
                 "inline": False,
             })
@@ -75,7 +74,7 @@ def send_new_cfps(cfps: list[dict]) -> bool:
         embeds.append(embed)
     
     payload = {
-        "content": f"**🎤 New CFPs Detected ({len(cfps)} total)**",
+        "content": f"**New CFPs Detected ({len(cfps)} total)**",
         "embeds": embeds,
     }
     
@@ -99,7 +98,7 @@ def send_closing_soon(cfps: list[dict]) -> bool:
     if not WEBHOOK_URL or not cfps:
         return False
     
-    message_parts = ["**⏰ CFPs Closing Soon!**\n"]
+    message_parts = ["**CFPs Closing Soon**\n"]
     
     for cfp in cfps[:5]:
         name = cfp.get("name", "")
@@ -108,8 +107,8 @@ def send_closing_soon(cfps: list[dict]) -> bool:
         cfp_url = cfp_info.get("url", cfp.get("url", ""))
         days = _days_remaining(cfp_end)
         
-        emoji = "🔴" if days <= 3 else "🟡"
-        message_parts.append(f"{emoji} **{name}** - {days} days left → [Apply]({cfp_url})")
+        urgency = "[URGENT]" if days <= 3 else "[SOON]"
+        message_parts.append(f"{urgency} **{name}** {days} days left: {cfp_url}")
     
     payload = {"content": "\n".join(message_parts)}
     

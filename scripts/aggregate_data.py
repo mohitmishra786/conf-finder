@@ -69,12 +69,31 @@ def main():
     print(f"\nTotal raw conferences: {len(all_conferences)}")
     
     # 2. Deduplicate
-    print("\n[2/6] Deduplicating...")
+    print("\n[2/7] Deduplicating...")
     conferences = deduplicate(all_conferences)
     print(f"After deduplication: {len(conferences)}")
     
+    # 2.5 Filter out past conferences
+    print("\n[3/7] Filtering past conferences...")
+    today = datetime.now().strftime("%Y-%m-%d")
+    
+    def is_future_or_undated(conf):
+        """Keep conferences that are in the future or have no date."""
+        start_date = conf.get("startDate")
+        if not start_date:
+            return True  # Keep undated conferences
+        try:
+            return start_date >= today
+        except:
+            return True
+    
+    before_filter = len(conferences)
+    conferences = [c for c in conferences if is_future_or_undated(c)]
+    filtered_out = before_filter - len(conferences)
+    print(f"Removed {filtered_out} past conferences, {len(conferences)} remaining")
+    
     # 3. Classify and enrich
-    print("\n[3/6] Classifying and enriching...")
+    print("\n[4/7] Classifying and enriching...")
     for conf in conferences:
         # Domain classification
         domain, sub_domains = classify(conf.get("name", ""))
@@ -101,12 +120,12 @@ def main():
         # Generate unique ID
         conf["id"] = _generate_id(conf)
     
-    # 4. Group by month
-    print("\n[4/6] Grouping by month...")
+    # 5. Group by month
+    print("\n[5/7] Grouping by month...")
     grouped = _group_by_month(conferences)
     
-    # 5. Calculate stats
-    print("\n[5/6] Calculating stats...")
+    # 6. Calculate stats
+    print("\n[6/7] Calculating stats...")
     stats = {
         "total": len(conferences),
         "withOpenCFP": sum(1 for c in conferences if (c.get("cfp") or {}).get("status") == "open"),
@@ -114,8 +133,8 @@ def main():
         "byDomain": _count_by_domain(conferences),
     }
     
-    # 6. Output
-    print("\n[6/6] Writing output...")
+    # 7. Output
+    print("\n[7/7] Writing output...")
     output = {
         "lastUpdated": datetime.utcnow().isoformat() + "Z",
         "stats": stats,
